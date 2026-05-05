@@ -1,0 +1,15 @@
+streamlit
+tensorflow
+numpy
+pandas
+scikit-learn
+pillow
+exifread
+xgboost
+opencv-python
+matplotlib
+seaborn
+joblib
+fastapi
+uvicorn
+kagglehub
