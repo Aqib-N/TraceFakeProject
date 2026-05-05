@@ -1,20 +1,15 @@
-# ML / DL packages
-tensorflow-cpu==2.13.0
-numpy==1.26.1
-pandas==2.1.1
-scikit-learn==1.3.0
-xgboost==1.7.7
-pillow==10.0.1
-exifread==3.0.0
-opencv-python==4.8.1.78
-matplotlib==3.8.1
-seaborn==0.12.2
-joblib==1.3.2
-
-# Web / app packages
 streamlit==1.57.0
-fastapi==0.101.0
-uvicorn==0.23.2
-
-# Kaggle downloader
-kagglehub==0.0.17
+tensorflow==2.15.0
+numpy==1.26.4
+pandas==2.1.4
+scikit-learn==1.3.2
+pillow==10.1.0
+opencv-python==4.8.1.78
+matplotlib==3.8.2
+seaborn==0.13.0
+joblib==1.3.2
+xgboost==2.0.2
+exifread==3.0.0
+fastapi==0.105.0
+uvicorn==0.24.0
+kagglehub==0.0.19
