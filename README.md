@@ -16,8 +16,3 @@
 # RUN Ui
 
 streamlit run app_ui.py
-
-./venv/bin/python src/preprocess/preprocess_images.py && \
-./venv/bin/python src/preprocess/exif_extractor.py && \
-./venv/bin/python src/train/train_exif_model.py && \
-./venv/bin/python src/train/train_cnn.py
