@@ -1,18 +1,17 @@
-streamlit==1.57.0
-tensorflow==2.13.1
+streamlit
+tensorflow
+numpy
+pandas
+scikit-learn
+pillow
+opencv-python
+matplotlib
+seaborn
+joblib
+xgboost
+exifread
 
-numpy==1.24.3
-pandas==2.1.4
-scikit-learn==1.3.2
-pillow==10.1.0
-opencv-python==4.8.1.78
-matplotlib==3.8.2
-seaborn==0.13.0
-joblib==1.3.2
-xgboost==2.0.2
-exifread==3.0.0
+fastapi
+uvicorn
 
-fastapi==0.105.0
-uvicorn==0.30.1
-
-kagglehub==1.0.1
+kagglehub
