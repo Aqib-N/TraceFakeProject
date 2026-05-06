@@ -1,26 +1,25 @@
-# TensorFlow 2.18+ supports NumPy 2.0 [^40^][^41^]
-tensorflow==2.18.0
-numpy==2.0.2              # Compatible with TF 2.18+ [^40^]
-pandas==2.2.3
-scikit-learn==1.6.1     # Latest stable, XGBoost 3.1.3 compatible [^42^]
+
+tensorflow
+numpy              
+pandas
+scikit-learn     
 # Image Processing
-pillow==11.1.0          # Supports Python 3.13, latest EXIF handling [^45^]
-opencv-python==4.11.0.86 # Latest stable with improved performance
-exifread==3.0.0         # Pure Python, no dependencies [^53^]
+pillow       
+opencv-python 
+exifread        
 # Visualization
-matplotlib==3.10.0
-seaborn==0.13.2
-# ML Models (Updated
-# XGBoost 3.1.3: scikit-learn 1.8+ compatible, categorical re-coder [^42^][^54^]
-xgboost==3.1.3
-joblib==1.4.2
+matplotlib
+seaborn
+
+xgboost
+joblib
 # Web UI
-streamlit==1.42.0       # Latest with improved performance
+streamlit    
 # API & Deployment
-fastapi==0.115.8
-uvicorn==0.34.0
-python-multipart==0.0.20  # For file uploads
-modal==0.73.0           # For cloud GPU deployment
+fastapi
+uvicorn
+python-multipart 
+modal    
 # Data
-kagglehub==0.3.6
+kagglehub
 datasets
