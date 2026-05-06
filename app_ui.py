@@ -1,17 +1,54 @@
+"""
+TraceFake AI — Streamlit Web Interface
+Secure file handling with validation [^12^][^13^]
+"""
+
 import streamlit as st
 import tempfile
 import os
-import io
+import sys
 import time
+from pathlib import Path
 from PIL import Image
 from PIL.ExifTags import TAGS
+
+# Fix paths for cloud deployment
+BASE_DIR = Path(__file__).parent
+sys.path.append(str(BASE_DIR))
+
+sys.path.append(str(Path(__file__).parent / "src"))
+# Create directories if they don't exist
+Path("reports").mkdir(exist_ok=True)
+Path("data/processed").mkdir(parents=True, exist_ok=True)
 from src.inference.predict_system import final_predict
+
+# -------------------------
+# Security: File Validation
+# -------------------------
+MAX_FILE_SIZE_MB = 10
+ALLOWED_TYPES = ["image/jpeg", "image/png"]
+
+def validate_upload(uploaded_file):
+    """Validate uploaded file for security [^12^]"""
+    if uploaded_file.size > MAX_FILE_SIZE_MB * 1024 * 1024:
+        return False, f"File too large. Max size: {MAX_FILE_SIZE_MB}MB"
+    
+    # Check MIME type via PIL
+    try:
+        img = Image.open(uploaded_file)
+        if img.format not in ['JPEG', 'PNG']:
+            return False, "Only JPG and PNG images are supported"
+    except Exception:
+        return False, "Invalid image file"
+    
+    return True, "Valid"
 
 # -------------------------
 # Page Config
 # -------------------------
 st.set_page_config(
     page_title="TraceFake AI",
+    page_icon="🔍",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -29,11 +66,9 @@ html, body, [class*="css"] {
     color: #E2E8F0;
 }
 
-/* Hide Streamlit default elements */
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding-top: 2rem; padding-bottom: 2rem; }
 
-/* ---- HEADER ---- */
 .tf-header {
     text-align: center;
     padding: 10px 0 18px;
@@ -53,7 +88,6 @@ html, body, [class*="css"] {
     margin-top: 4px;
 }
 
-/* ---- STEPPER ---- */
 .stepper-wrap {
     display: flex;
     justify-content: center;
@@ -79,7 +113,6 @@ html, body, [class*="css"] {
 .step-line { width: 36px; height: 1px; background: #1A3040; margin: 0 6px; }
 .step-line.done { background: rgba(0,201,138,0.4); }
 
-/* ---- GLASS CARD ---- */
 .card {
     background: rgba(255,255,255,0.03);
     border-radius: 16px;
@@ -88,7 +121,6 @@ html, body, [class*="css"] {
     margin-bottom: 20px;
 }
 
-/* ---- UPLOAD ZONE ---- */
 .upload-hint {
     border: 1.5px dashed rgba(0,212,232,0.3);
     border-radius: 12px;
@@ -99,7 +131,6 @@ html, body, [class*="css"] {
     margin-bottom: 6px;
 }
 
-/* ---- SCAN ITEMS ---- */
 .scan-item {
     display: flex; align-items: center; gap: 12px;
     background: rgba(255,255,255,0.02);
@@ -113,7 +144,6 @@ html, body, [class*="css"] {
 .scan-done  { color: #00C98A; font-family: 'Space Mono', monospace; font-size: 11px; }
 .scan-wait  { color: #FFAA32; font-family: 'Space Mono', monospace; font-size: 11px; }
 
-/* ---- VERDICT ---- */
 .verdict-fake {
     font-family: 'Space Mono', monospace;
     font-size: 26px; font-weight: 700;
@@ -134,7 +164,6 @@ html, body, [class*="css"] {
     letter-spacing: 1px;
 }
 
-/* ---- SCORE GRID ---- */
 .score-card {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
@@ -152,7 +181,6 @@ html, body, [class*="css"] {
     font-size: 22px; color: #00D4E8;
 }
 
-/* ---- EXIF TABLE ---- */
 .exif-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: 7px 0;
@@ -164,7 +192,6 @@ html, body, [class*="css"] {
 .exif-val { color: #9ABAC8; font-family: 'Space Mono', monospace; font-size: 11px; }
 .exif-miss { color: #FF4D6D55; font-family: 'Space Mono', monospace; font-size: 11px; }
 
-/* ---- SECTION TITLE ---- */
 .sec-title {
     font-family: 'Space Mono', monospace;
     font-size: 11px; color: #00D4E8;
@@ -173,7 +200,6 @@ html, body, [class*="css"] {
     padding-bottom: 6px;
 }
 
-/* ---- CONFIDENCE BAR ---- */
 .conf-bar-wrap { margin: 10px 0 16px; }
 .conf-bar-bg {
     background: rgba(255,255,255,0.05);
@@ -184,7 +210,6 @@ html, body, [class*="css"] {
     transition: width 0.6s ease;
 }
 
-/* ---- HISTORY TABLE ---- */
 .hist-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: 8px 12px;
@@ -199,7 +224,6 @@ html, body, [class*="css"] {
 .hist-fake { color: #FF4D6D; font-family: 'Space Mono', monospace; font-size: 11px; }
 .hist-score { color: #6A8A9A; font-family: 'Space Mono', monospace; font-size: 11px; }
 
-/* Override Streamlit button */
 div.stButton > button {
     background: linear-gradient(135deg, #00A8BE, #00D4E8) !important;
     color: #080C14 !important;
@@ -226,7 +250,6 @@ div.stDownloadButton > button {
     width: 100% !important;
 }
 
-/* Progress bar color */
 div[data-testid="stProgress"] > div > div > div {
     background-color: #00D4E8 !important;
 }
@@ -238,7 +261,7 @@ div[data-testid="stProgress"] > div > div > div {
 # Session State Init
 # -------------------------
 if "step" not in st.session_state:
-    st.session_state.step = 1          # 1=upload 2=analyzing 3=results 4=history
+    st.session_state.step = 1
 if "result" not in st.session_state:
     st.session_state.result = None
 if "exif_data" not in st.session_state:
@@ -263,7 +286,8 @@ def extract_exif(image_path):
             for tag_id, value in raw.items():
                 tag = TAGS.get(tag_id, tag_id)
                 if tag in ["Make", "Model", "DateTime", "Software",
-                            "GPSInfo", "Flash", "ExifVersion", "Orientation"]:
+                           "GPSInfo", "Flash", "ExifVersion", "Orientation",
+                           "DateTimeOriginal", "DateTimeDigitized"]:
                     exif_info[tag] = str(value)[:60]
         st.session_state.img_info = {
             "format": img.format or "JPEG",
@@ -285,6 +309,7 @@ def build_report(result, exif_data, img_info):
         "============================================",
         "",
         f"VERDICT       : {result['result']}",
+        f"CONFIDENCE    : {result['confidence']:.2%}",
         f"FINAL SCORE   : {result['final_score']:.4f}",
         f"CNN SCORE     : {result['cnn_score']:.4f}",
         f"EXIF SCORE    : {result['exif_score']:.4f}",
@@ -362,7 +387,7 @@ if step == 1:
     with col2:
         st.markdown("<div class='card'>", unsafe_allow_html=True)
         st.markdown("<div class='sec-title'>◈ Upload Image</div>", unsafe_allow_html=True)
-        st.markdown("<div class='upload-hint'>Drag & drop or click below to upload a JPG / PNG image</div>",
+        st.markdown("<div class='upload-hint'>Drag & drop or click below to upload a JPG / PNG image<br><small>Max size: 10MB | Supported: JPG, PNG</small></div>",
                     unsafe_allow_html=True)
 
         uploaded_file = st.file_uploader(
@@ -370,26 +395,32 @@ if step == 1:
         )
 
         if uploaded_file is not None:
-            img = Image.open(uploaded_file)
-            st.image(img, use_column_width=True, caption="Preview")
+            # Validate file
+            is_valid, msg = validate_upload(uploaded_file)
+            if not is_valid:
+                st.error(f"⚠️ {msg}")
+            else:
+                img = Image.open(uploaded_file)
+                st.image(img, use_container_width=True, caption="Preview")
 
-            st.markdown(f"""
-            <div style='font-size:12px; color:#4A7080; margin:8px 0;'>
-                📄 <b style='color:#6A9AAA'>{uploaded_file.name}</b> &nbsp;|&nbsp;
-                {uploaded_file.size // 1024} KB
-            </div>
-            """, unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style='font-size:12px; color:#4A7080; margin:8px 0;'>
+                    📄 <b style='color:#6A9AAA'>{uploaded_file.name}</b> &nbsp;|&nbsp;
+                    {uploaded_file.size // 1024} KB
+                </div>
+                """, unsafe_allow_html=True)
 
-            if st.button("▶  START ANALYSIS"):
-                # Save to temp file
-                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
-                uploaded_file.seek(0)
-                tmp.write(uploaded_file.read())
-                tmp.flush()
-                st.session_state.tmp_path = tmp.name
-                st.session_state.exif_data = extract_exif(tmp.name)
-                st.session_state.step = 2
-                st.rerun()
+                if st.button("▶  START ANALYSIS"):
+                    # Secure temp file handling [^13^]
+                    suffix = Path(uploaded_file.name).suffix
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                        uploaded_file.seek(0)
+                        tmp.write(uploaded_file.read())
+                        st.session_state.tmp_path = tmp.name
+                    
+                    st.session_state.exif_data = extract_exif(st.session_state.tmp_path)
+                    st.session_state.step = 2
+                    st.rerun()
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -403,46 +434,38 @@ elif step == 2:
         st.markdown("<div class='card'>", unsafe_allow_html=True)
         st.markdown("<div class='sec-title'>◈ Running Forensic Analysis</div>", unsafe_allow_html=True)
 
-        st.markdown("""
-        <div class='scan-item'>
-            <span style='font-size:16px'>🧠</span>
-            <span class='scan-label'>CNN Deep Feature Extraction</span>
-            <span class='scan-wait'>PROCESSING...</span>
-        </div>
-        <div class='scan-item'>
-            <span style='font-size:16px'>📷</span>
-            <span class='scan-label'>EXIF Metadata Analysis</span>
-            <span class='scan-wait'>PROCESSING...</span>
-        </div>
-        <div class='scan-item'>
-            <span style='font-size:16px'>🔬</span>
-            <span class='scan-label'>ELA Forensic Check</span>
-            <span class='scan-wait'>PROCESSING...</span>
-        </div>
-        """, unsafe_allow_html=True)
+        scans = [
+            ("🧠", "CNN Deep Feature Extraction", "Analyzing visual patterns..."),
+            ("📷", "EXIF Metadata Analysis", "Checking camera signatures..."),
+            ("🔬", "ELA Forensic Check", "Detecting compression artifacts..."),
+            ("🎨", "Noise Pattern Analysis", "Identifying GAN artifacts..."),
+        ]
+
+        for icon, label, detail in scans:
+            st.markdown(f"""
+            <div class='scan-item'>
+                <span style='font-size:16px'>{icon}</span>
+                <span class='scan-label'>{label}<br><small style='color:#3A6070'>{detail}</small></span>
+                <span class='scan-wait'>PROCESSING...</span>
+            </div>
+            """, unsafe_allow_html=True)
 
         bar = st.progress(0)
-        for pct in range(0, 61, 5):
-            time.sleep(0.04)
+        for pct in range(0, 101, 5):
+            time.sleep(0.05)
             bar.progress(pct)
 
-        # Run actual prediction
-        has_exif = 1 if st.session_state.exif_data else 0
-        missing   = 3 - has_exif
-        features  = {"missing": missing, "has_exif": has_exif, "suspicious": 0}
-
-        result = final_predict(st.session_state.tmp_path, features)
+        # Run prediction
+        result = final_predict(st.session_state.tmp_path)
         st.session_state.result = result
 
         # Add to history
         st.session_state.history.append({
             "verdict": result["result"],
-            "score":   result["final_score"],
+            "score": result["final_score"],
+            "confidence": result["confidence"],
+            "file": Path(st.session_state.tmp_path).name
         })
-
-        for pct in range(60, 101, 5):
-            time.sleep(0.03)
-            bar.progress(pct)
 
         st.markdown("</div>", unsafe_allow_html=True)
         st.session_state.step = 3
@@ -453,42 +476,42 @@ elif step == 2:
 # STEP 3 — RESULTS
 # ============================
 elif step == 3:
-    result   = st.session_state.result
+    result = st.session_state.result
     exif_data = st.session_state.exif_data
-    img_info  = st.session_state.img_info
+    img_info = st.session_state.img_info
 
     is_fake = result["result"] == "FAKE"
-    conf    = result["final_score"]
+    conf = result["confidence"]
     bar_color = "#FF4D6D" if is_fake else "#00C98A"
 
-    # --- Verdict banner ---
+    # Verdict banner
     if is_fake:
-        st.markdown("<div class='verdict-fake'>✗ FAKE IMAGE DETECTED</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='verdict-fake'>✗ FAKE IMAGE DETECTED</div>", unsafe_allow_html=True)
     else:
-        st.markdown("<div class='verdict-real'>✓ REAL IMAGE VERIFIED</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='verdict-real'>✓ REAL IMAGE VERIFIED</div>", unsafe_allow_html=True)
 
-    st.markdown(f"<div class='verdict-sub'>Confidence Score: {conf:.2%}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='verdict-sub'>Confidence: {conf:.2%} | Final Score: {result['final_score']:.4f}</div>", unsafe_allow_html=True)
 
-    # --- Score grid ---
+    # Score grid
     c1, c2, c3, c4 = st.columns(4)
     scores = [
-        ("CNN Score",     result["cnn_score"]),
-        ("EXIF Score",    result["exif_score"]),
-        ("Forensic Score",result["forensic_score"]),
-        ("Final Score",   result["final_score"]),
+        ("CNN Score", result["cnn_score"]),
+        ("EXIF Score", result["exif_score"]),
+        ("Forensic Score", result["forensic_score"]),
+        ("Final Score", result["final_score"]),
     ]
     for col, (label, val) in zip([c1, c2, c3, c4], scores):
         with col:
             st.markdown(f"""
             <div class='score-card'>
                 <div class='score-label'>{label}</div>
-                <div class='score-val'>{val:.2f}</div>
+                <div class='score-val'>{val:.3f}</div>
             </div>
             """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- Two columns: EXIF + image info ---
+    # Two columns: EXIF + image info
     left, right = st.columns([1, 1])
 
     with left:
@@ -496,12 +519,13 @@ elif step == 3:
         st.markdown("<div class='sec-title'>◈ EXIF Metadata</div>", unsafe_allow_html=True)
 
         exif_fields = {
-            "Camera Make":  exif_data.get("Make"),
+            "Camera Make": exif_data.get("Make"),
             "Camera Model": exif_data.get("Model"),
-            "Date Taken":   exif_data.get("DateTime"),
-            "Software":     exif_data.get("Software"),
-            "Orientation":  exif_data.get("Orientation"),
-            "Flash":        exif_data.get("Flash"),
+            "Date Taken": exif_data.get("DateTime"),
+            "Date Original": exif_data.get("DateTimeOriginal"),
+            "Software": exif_data.get("Software"),
+            "Orientation": exif_data.get("Orientation"),
+            "Flash": exif_data.get("Flash"),
         }
 
         for key, val in exif_fields.items():
@@ -519,10 +543,11 @@ elif step == 3:
                 </div>""", unsafe_allow_html=True)
 
         exif_count = sum(1 for v in exif_fields.values() if v)
+        suspicious = exif_count < 2
         st.markdown(f"""
         <div style='margin-top:12px; font-size:11px; color:#3A6070;'>
             {exif_count} of {len(exif_fields)} fields present
-            {'&nbsp;&nbsp;<span style="color:#FF4D6D">⚠ Suspicious</span>' if exif_count < 2 else ''}
+            {'&nbsp;&nbsp;<span style="color:#FF4D6D">⚠ Suspicious</span>' if suspicious else '&nbsp;&nbsp;<span style="color:#00C98A">✓ Normal</span>'}
         </div>
         """, unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -532,11 +557,11 @@ elif step == 3:
         st.markdown("<div class='sec-title'>◈ Image Info</div>", unsafe_allow_html=True)
 
         info_rows = [
-            ("Format",     img_info.get("format", "—")),
-            ("Dimensions", img_info.get("size",   "—")),
-            ("Color Mode", img_info.get("mode",   "—")),
+            ("Format", img_info.get("format", "—")),
+            ("Dimensions", img_info.get("size", "—")),
+            ("Color Mode", img_info.get("mode", "—")),
             ("EXIF Present", "Yes" if exif_data else "No"),
-            ("Metadata Count", str(len(exif_data)) + " fields"),
+            ("Metadata Count", f"{len(exif_data)} fields"),
         ]
         for key, val in info_rows:
             st.markdown(f"""
@@ -562,7 +587,7 @@ elif step == 3:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- Actions ---
+    # Actions
     btn1, btn2, btn3 = st.columns(3)
 
     report_text = build_report(result, exif_data, img_info)
@@ -572,7 +597,7 @@ elif step == 3:
         st.download_button(
             "⬇  DOWNLOAD REPORT (.txt)",
             data=report_bytes,
-            file_name="tracefake_report.txt",
+            file_name=f"tracefake_report_{int(time.time())}.txt",
             mime="text/plain",
         )
     with btn2:
@@ -581,13 +606,16 @@ elif step == 3:
             st.rerun()
     with btn3:
         if st.button("↺  ANALYZE ANOTHER"):
-            st.session_state.step = 1
-            st.session_state.result = None
-            st.session_state.exif_data = {}
-            st.session_state.img_info = {}
+            # Clean up temp file
             if st.session_state.tmp_path and os.path.exists(st.session_state.tmp_path):
                 os.unlink(st.session_state.tmp_path)
-            st.session_state.tmp_path = None
+            
+            # Reset state
+            for key in ['step', 'result', 'exif_data', 'img_info', 'tmp_path']:
+                if key == 'step':
+                    st.session_state[key] = 1
+                else:
+                    st.session_state[key] = None if key != 'exif_data' and key != 'img_info' else {}
             st.rerun()
 
 
@@ -609,9 +637,9 @@ elif step == 4:
                 verdict_class = "hist-fake" if entry["verdict"] == "FAKE" else "hist-real"
                 st.markdown(f"""
                 <div class='hist-row'>
-                    <span class='hist-date'>Analysis #{len(history) - i + 1}</span>
+                    <span class='hist-date'>#{len(history) - i + 1} — {entry.get('file', 'Unknown')[:20]}</span>
                     <span class='{verdict_class}'>{entry['verdict']}</span>
-                    <span class='hist-score'>Score: {entry['score']:.2f}</span>
+                    <span class='hist-score'>Conf: {entry['confidence']:.1%}</span>
                 </div>
                 """, unsafe_allow_html=True)
 

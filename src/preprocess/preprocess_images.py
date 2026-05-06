@@ -23,7 +23,7 @@ OUT_REAL.mkdir(parents=True, exist_ok=True)
 OUT_FAKE.mkdir(parents=True, exist_ok=True)
 
 IMG_SIZE = (224, 224)
-MAX_IMAGES = 20000
+MAX_IMAGES = 10000
 
 # Fast safe hash function
 def get_hash(fp):

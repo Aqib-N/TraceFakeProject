@@ -1,4 +1,33 @@
-venv/
-.env/
+
+---
+
+## 10. `.gitignore` — NEW FILE
+
+```gitignore
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.env
+
+# Data
+data/raw/
+data/processed/
+*.csv
+*.jpg
+*.jpeg
+*.png
+
+
+
+# Temp
+temp_ela.jpg
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+*.swp
