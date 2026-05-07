@@ -2,10 +2,7 @@ import random
 import hashlib
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
-from google.colab import drive
 
-# Mount Google Drive
-drive.mount('/content/drive')
 
 SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")  
 SRC_FAKE = Path("/content/drive/MyDrive/fake_image_processed")  
