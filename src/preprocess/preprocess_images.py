@@ -2,23 +2,19 @@ import random
 import hashlib
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
-import kagglehub
+from google.colab import drive
 
-# Download dataset
-dataset_path = Path(
-    kagglehub.dataset_download("aqibnawaz7/real-vs-fake-image-dataset")
-)
+# Mount Google Drive
+drive.mount('/content/drive')
 
-print("Downloaded to:", dataset_path)
+SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")  
+SRC_FAKE = Path("/content/drive/MyDrive/fake_image_processed")  
 
-# Paths 
-
-SRC_REAL = dataset_path / "real"
-SRC_FAKE = dataset_path / "fake"
-
+# Output paths
 OUT_REAL = Path("data/processed/real")
 OUT_FAKE = Path("data/processed/fake")
 
+# Create output directories
 OUT_REAL.mkdir(parents=True, exist_ok=True)
 OUT_FAKE.mkdir(parents=True, exist_ok=True)
 
@@ -36,32 +32,66 @@ def get_hash(fp):
     except:
         return None
 
-
-# Image processing
-
+# Image processing function - PRESERVES EXIF and forensic metadata
 def process(fp, out_dir, label, idx):
     try:
-        img = Image.open(fp).convert("RGB")
+        # Open image
+        img = Image.open(fp)
+        
+        # Extract EXIF data and other metadata BEFORE any modifications
+        exif_data = img.info.get('exif', b'')
+        icc_profile = img.info.get('icc_profile', b'')
+        comment = img.info.get('comment', b'')
+        
+        # Convert to RGB if needed (for PNG with alpha channel)
+        if img.mode in ('RGBA', 'LA', 'P'):
+            img = img.convert('RGB')
+        elif img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Resize
         img = img.resize(IMG_SIZE, Image.Resampling.LANCZOS)
-        img.save(out_dir / f"{label}_{idx}.jpg", quality=95)
+        
+        save_kwargs = {
+            'format': 'JPEG',
+            'quality': 95,
+            'optimize': False,      
+            'progressive': False   
+        }
+        
+        # Add back all preserved metadata
+        if exif_data:
+            save_kwargs['exif'] = exif_data
+        if icc_profile:
+            save_kwargs['icc_profile'] = icc_profile
+        if comment:
+            save_kwargs['comment'] = comment
+        
+        img.save(out_dir / f"{label}_{idx}.jpg", **save_kwargs)
         return True
     except UnidentifiedImageError:
         return False
-    except Exception:
+    except Exception as e:
+        print(f"Error processing {fp}: {e}")
         return False
 
-#  preprocessing
+# Preprocessing function
 def preprocess(src, dst, label):
-    files = list(Path(src).rglob("*"))
+    if not src.exists():
+        print(f"⚠️ Warning: Source path does not exist: {src}")
+        print(f"Please update SRC_REAL and SRC_FAKE paths to your Google Drive directories")
+        return
+    
+    print(f"\nScanning {src} for images...")
+    files = list(src.rglob("*"))
     random.shuffle(files)
 
     seen_hashes = set()   
-
     count = 0
     skipped_dup = 0
     skipped_bad = 0
 
-    valid_ext = {".jpg", ".jpeg", ".png", ".webp"}
+    valid_ext = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
 
     for fp in files:
         if count >= MAX_IMAGES:
@@ -84,15 +114,36 @@ def preprocess(src, dst, label):
         if process(fp, dst, label, count):
             count += 1
 
+        # Progress indicator
+        if count % 500 == 0 and count > 0:
+            print(f"Processed {count}/{MAX_IMAGES} {label} images...")
+
     print(f"""
 ========================
 {label.upper()} DONE
 Processed: {count}
 Duplicates skipped: {skipped_dup}
 Bad files skipped: {skipped_bad}
+EXIF/Forensic metadata: PRESERVED ✓
 ========================
 """)
 
 if __name__ == "__main__":
+    print("=" * 50)
+    print("Processing REAL images from Google Drive...")
+    print("EXIF, GPS, and forensic metadata will be PRESERVED")
+    print("=" * 50)
     preprocess(SRC_REAL, OUT_REAL, "real")
+    
+    print("\n" + "=" * 50)
+    print("Processing FAKE images from Google Drive...")
+    print("EXIF, GPS, and forensic metadata will be PRESERVED")
+    print("=" * 50)
     preprocess(SRC_FAKE, OUT_FAKE, "fake")
+    
+    print("\n" + "=" * 50)
+    print("✅ COMPLETE! Processed images saved to:")
+    print(f"   Real images: {OUT_REAL.absolute()}")
+    print(f"   Fake images: {OUT_FAKE.absolute()}")
+    print("   EXIF/Forensic metadata: PRESERVED ✓")
+    print("=" * 50)
