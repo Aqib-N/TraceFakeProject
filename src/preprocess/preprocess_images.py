@@ -42,14 +42,14 @@ REAL_CAMERAS = [
     (b'Nikon', b'D780'),
     
     # Sony
-    (b'Sony', b'ILCE-1'),  # A1
-    (b'Sony', b'ILCE-7RM5'),  # A7R V
-    (b'Sony', b'ILCE-7M4'),  # A7 IV
-    (b'Sony', b'ILCE-7CM2'),  # A7C II
-    (b'Sony', b'ILCE-6700'),  # A6700
-    (b'Sony', b'ILCE-9M3'),  # A9 III
-    (b'Sony', b'ILCE-7SM3'),  # A7S III
-    (b'Sony', b'ZV-E1'),  # Vlogging camera
+    (b'Sony', b'ILCE-1'),
+    (b'Sony', b'ILCE-7RM5'),
+    (b'Sony', b'ILCE-7M4'),
+    (b'Sony', b'ILCE-7CM2'),
+    (b'Sony', b'ILCE-6700'),
+    (b'Sony', b'ILCE-9M3'),
+    (b'Sony', b'ILCE-7SM3'),
+    (b'Sony', b'ZV-E1'),
     
     # Fujifilm
     (b'FUJIFILM', b'X-H2S'),
@@ -61,9 +61,9 @@ REAL_CAMERAS = [
     (b'FUJIFILM', b'X-T30 II'),
     
     # Panasonic
-    (b'Panasonic', b'DC-S5M2'),  # Lumix S5 II
+    (b'Panasonic', b'DC-S5M2'),
     (b'Panasonic', b'DC-S5M2X'),
-    (b'Panasonic', b'DC-G9M2'),  # Lumix G9 II
+    (b'Panasonic', b'DC-G9M2'),
     (b'Panasonic', b'DC-S1R'),
     (b'Panasonic', b'DC-S5'),
     (b'Panasonic', b'Lumix GH6'),
@@ -104,7 +104,6 @@ REAL_CAMERAS = [
 
 # ==================== MODERN FAKE/AI CAMERAS ====================
 FAKE_CAMERAS = [
-    # AI Image Generators (Latest)
     (b'Midjourney', b'v6.1'),
     (b'Midjourney', b'v6'),
     (b'Midjourney', b'v5.2'),
@@ -112,192 +111,54 @@ FAKE_CAMERAS = [
     (b'OpenAI', b'DALL-E 2'),
     (b'Stability AI', b'Stable Diffusion 3.5'),
     (b'Stability AI', b'Stable Diffusion XL'),
-    (b'Stability AI', b'Stable Cascade'),
     (b'Google', b'Imagen 2'),
     (b'Meta', b'Imagine'),
-    (b'Meta', b'Make-A-Scene'),
     (b'Adobe', b'Firefly 2'),
-    (b'Adobe', b'Firefly'),
     (b'Canva', b'AI Generator'),
-    (b'Leonardo AI', b'Phoenix'),
-    (b'Playground AI', b'v2.5'),
-    (b'NightCafe', b'Stable Diffusion'),
-    (b'DeviantArt', b'DreamUp'),
-    (b'Shutterstock', b'AI'),
-    
-    # Deepfake Face Swapping
-    (b'DeepFaceLab', b'2.0'),
     (b'DeepFaceLab', b'3.0.1'),
-    (b'FaceSwap', b'Deepfake'),
     (b'Roop', b'Face Swapper'),
-    (b'Roop', b'Roop-Unleashed'),
-    (b'InsightFace', b'Swapper'),
-    (b'SimSwap', b'Face Swap'),
-    (b'FaceSwap', b'GAN'),
-    (b'DeepSwap', b'Ai'),
-    (b'Reface', b'App'),
-    
-    # GAN Models
     (b'StyleGAN', b'StyleGAN3'),
-    (b'StyleGAN', b'StyleGAN2-ADA'),
-    (b'StyleGAN', b'StyleGAN2'),
-    (b'ProGAN', b'128x128'),
-    (b'BigGAN', b'512x512'),
-    (b'StyleGAN-XL', b'Model'),
-    (b'GAN', b'Generated'),
-    
-    # AI Art Generators
-    (b'Stable Diffusion', b'DreamShaper'),
-    (b'Stable Diffusion', b'Realistic Vision'),
-    (b'Midjourney', b'Niji'),
-    (b'PixAI', b'Generator'),
-    (b'Scenario', b'Gen AI'),
-    
-    # Suspicious/Unknown
     (b'Unknown', b'AI Generated'),
-    (b'Synthetic', b'Deepfake Model'),
-    (b'DeepDream', b'AIGenerator'),
-    (b'GAN', b'Face Generator'),
-    (b'Diffusion', b'Model v2'),
-    (b'Neural', b'Face Generator'),
-    (b'AI Studio', b'Generator'),
 ]
 
 # ==================== MODERN REAL SOFTWARE ====================
 REAL_SOFTWARE = [
-    # Adobe Suite 2024-2025
     b'Adobe Photoshop 2025',
     b'Adobe Photoshop 2024',
-    b'Adobe Photoshop 25.0',
     b'Adobe Lightroom Classic 14.0',
     b'Adobe Lightroom Classic 13.0',
-    b'Adobe Lightroom 8.0',
-    b'Adobe Lightroom 7.0',
     b'Adobe Camera Raw 17.0',
-    b'Adobe Camera Raw 16.0',
-    b'Adobe Bridge 2025',
-    b'Adobe Bridge 2024',
-    b'Adobe DNG Converter 16.0',
-    
-    # Professional Tools
-    b'Capture One 23',
     b'Capture One Pro 16.5',
-    b'Capture One Pro 16',
     b'DxO PhotoLab 8',
-    b'DxO PhotoLab 7',
     b'Luminar Neo 1.20',
-    b'Luminar AI',
-    b'ON1 Photo RAW 2025',
-    b'ON1 Photo RAW 2024',
     b'Affinity Photo 2.5',
-    b'Affinity Photo 2',
-    b'Pixelmator Pro 3.6',
     b'Darktable 4.8',
-    b'Darktable 4.6',
-    b'RawTherapee 5.11',
-    b'RawTherapee 5.9',
-    
-    # Open Source
     b'GIMP 2.10.38',
     b'GIMP 3.0',
-    b'Krita 5.2',
-    b'Krita 5.1',
-    
-    # Smartphone Apps
-    b'Instagram Filter',
     b'Snapseed 2.0',
-    b'VSCO',
     b'Lightroom Mobile 9.0',
-    b'Snapchat Camera',
-    b'FaceTune 2',
-    b'Remini',
-    
-    # Camera Manufacturer Software
-    b'Canon Digital Photo Professional 4.18',
-    b'Nikon NX Studio 1.6',
-    b'Sony Imaging Edge 3.6',
-    b'Fujifilm X RAW Studio 2.0',
-    b'OM System Workspace',
-    b'Panasonic Lumix Tether',
 ]
 
 # ==================== MODERN FAKE/AI SOFTWARE ====================
 FAKE_SOFTWARE = [
-    # Deepfake Tools
     b'DeepFaceLab 3.0',
-    b'DeepFaceLab 2.0',
-    b'FaceSwap Deepfake Pro',
     b'Roop Face Swapper v1.3',
-    b'InsightFace Swapper',
-    b'SimSwap Face Swap',
-    b'DeepSwap AI',
-    b'Reface App',
-    b'Faceswap GAN',
-    b'Deepfake Creator Pro',
-    
-    # AI Image Generators
     b'Midjourney AI v6.1',
-    b'Midjourney AI v6',
     b'DALL-E 3 Generator',
-    b'DALL-E 2',
     b'Stable Diffusion 3.5',
-    b'Stable Diffusion XL',
-    b'Stable Cascade',
     b'Adobe Firefly 2',
-    b'Adobe Firefly',
-    b'Google Imagen 2',
-    b'Meta Imagine',
-    b'Leonardo AI Phoenix',
-    b'Playground AI v2.5',
-    b'NightCafe Creator',
-    
-    # GAN Tools
     b'StyleGAN3 Generator',
-    b'StyleGAN2-ADA',
-    b'ProGAN Model',
-    b'BigGAN Generator',
-    b'GAN Face Generator',
-    b'StyleGAN-XL',
-    
-    # AI Editing
-    b'DeepDream AI',
-    b'AI Face Editor Pro',
-    b'Neural Face Swap',
-    b'Deepfake App Pro',
-    b'AI Portrait Generator',
-    
-    # Suspicious
     b'AI Generated Content',
-    b'Synthetic Media Creator',
-    b'Deepfake Maker Pro',
+    b'Deepfake Creator Pro',
     b'Face Generator AI',
-    b'AI Art Generator',
 ]
 
-# ==================== SUSPICIOUS KEYWORDS FOR DETECTION ====================
+# ==================== SUSPICIOUS KEYWORDS ====================
 SUSPICIOUS_SOFTWARE_KEYWORDS = [
-    'deepfake', 'deepface', 'faceswap', 'roop', 'insightface', 'simswap',
-    'midjourney', 'dall-e', 'dalle', 'stable diffusion', 'stability ai',
-    'stylegan', 'progan', 'biggan', 'gan', 'diffusion', 'cascade',
-    'firefly', 'imagen', 'imagine', 'leonardo', 'playground', 'nightcafe',
-    'deepdream', 'neural', 'synthetic', 'generated', 'ai', 'fake',
-    'swapper', 'creator', 'generator', 'make', 'model', 'dreamup',
-    'reface', 'deepswap'
-]
-
-# ==================== FAKE BRANDS (Don't exist) ====================
-FAKE_BRANDS = [
-    b'AIGenerator', b'DeepfakeAI', b'FakeCamera', b'SyntheticCam',
-    b'GAN Cam', b'DiffusionCam', b'StyleGAN Cam', b'NeuralCam',
-    b'Midjourney', b'OpenAI', b'Stability AI', b'DeepFaceLab'
-]
-
-# ==================== REAL BRANDS (For validation) ====================
-REAL_BRANDS = [
-    b'Canon', b'Nikon', b'Sony', b'FUJIFILM', b'Panasonic', 
-    b'Leica', b'OM SYSTEM', b'OM System', b'Pentax', b'RICOH',
-    b'Hasselblad', b'Apple', b'Samsung', b'Google', b'Xiaomi', 
-    b'OnePlus', b'Huawei', b'Nothing', b'Vivo', b'Asus'
+    'deepfake', 'deepface', 'faceswap', 'roop', 'midjourney', 
+    'dall-e', 'dalle', 'stable diffusion', 'stylegan', 'gan', 
+    'firefly', 'imagen', 'synthetic', 'generated', 'ai',
+    'swapper', 'creator', 'generator', 'deepfake'
 ]
 
 def is_suspicious_software(software_name):
@@ -307,26 +168,11 @@ def is_suspicious_software(software_name):
     
     name_lower = software_name.lower().decode('utf-8', errors='ignore')
     
-    # Check against known suspicious keywords
     for keyword in SUSPICIOUS_SOFTWARE_KEYWORDS:
         if keyword in name_lower:
             return True
     
     return False
-
-def is_valid_camera_brand(make):
-    """Check if camera brand is legitimate"""
-    if not make:
-        return False
-    
-    make_val = make if isinstance(make, bytes) else make.encode()
-    
-    # Check against fake brands first
-    if make_val in FAKE_BRANDS:
-        return False
-    
-    # Check against real brands
-    return make_val in REAL_BRANDS
 
 def generate_realistic_exif(is_fake, has_original_exif=False):
     """Generate realistic EXIF data with modern device patterns"""
@@ -343,9 +189,6 @@ def generate_realistic_exif(is_fake, has_original_exif=False):
             make, model = random.choice(FAKE_CAMERAS)
             software = random.choice(FAKE_SOFTWARE)
             
-            # Higher chance of suspicious software for fake images
-            suspicious_software = random.random() < 0.8
-            
             exif_dict = {
                 '0th': {
                     piexif.ImageIFD.Make: make,
@@ -358,19 +201,13 @@ def generate_realistic_exif(is_fake, has_original_exif=False):
                 'Exif': {
                     piexif.ExifIFD.DateTimeOriginal: timestamp,
                     piexif.ExifIFD.DateTimeDigitized: timestamp,
-                    # Unrealistic exposure settings
                     piexif.ExifIFD.ExposureTime: (random.choice([1, 10, 100, 500, 1000]), random.choice([50, 100, 500, 1000, 2000])),
-                    piexif.ExifIFD.FNumber: (random.choice([1, 1.4, 2, 2.8, 4, 5.6, 8]), 10),
-                    piexif.ExifIFD.ISOSpeedRatings: random.choice([50, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600]),
-                    piexif.ExifIFD.FocalLength: (random.choice([18, 24, 35, 50, 85, 135, 200, 300]), 10),
+                    piexif.ExifIFD.FNumber: (random.choice([1, 14, 2, 28, 4, 56, 8]), 10),
+                    piexif.ExifIFD.ISOSpeedRatings: random.choice([100, 200, 400, 800, 1600, 3200, 6400]),
+                    piexif.ExifIFD.FocalLength: (random.choice([24, 35, 50, 85]), 10),
                 },
                 'GPS': {}  # Fake images typically lack GPS
             }
-            
-            # Add suspicious software note
-            if suspicious_software:
-                exif_dict['0th'][piexif.ImageIFD.ImageDescription] = b'Generated by AI Model'
-                
         else:
             # REAL images: Use real cameras, professional software, complete metadata
             make, model = random.choice(REAL_CAMERAS)
@@ -379,16 +216,16 @@ def generate_realistic_exif(is_fake, has_original_exif=False):
             # Realistic exposure values based on camera type
             if make in [b'Apple', b'Samsung', b'Google', b'Xiaomi', b'OnePlus', b'Huawei']:
                 # Smartphones
-                exposure = (1, random.choice([50, 60, 100, 120, 200, 500, 1000]))
-                fnumber = (random.choice([1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2]), 10)
-                iso = random.choice([20, 25, 32, 40, 50, 64, 80, 100, 125, 160, 200])
-                focal_length = random.choice([24, 26, 28, 35, 50, 85])
+                exposure = (1, random.choice([50, 60, 100, 120, 200, 500]))
+                fnumber = (random.choice([15, 16, 17, 18, 19, 20, 22]), 10)
+                iso = random.choice([20, 25, 32, 40, 50, 64, 80, 100])
+                focal_length = random.choice([24, 26, 28, 35])
             else:
                 # DSLR/Mirrorless
-                exposure = (1, random.choice([100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000]))
-                fnumber = (random.choice([1.4, 1.8, 2, 2.8, 4, 5.6, 8, 11, 16]), 10)
-                iso = random.choice([100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600])
-                focal_length = random.choice([24, 35, 50, 70, 85, 105, 135, 200, 300])
+                exposure = (1, random.choice([100, 125, 160, 200, 250, 320, 400, 500]))
+                fnumber = (random.choice([14, 18, 2, 28, 4, 56, 8, 11, 16]), 10)
+                iso = random.choice([100, 125, 160, 200, 250, 320, 400, 500, 640, 800])
+                focal_length = random.choice([24, 35, 50, 70, 85, 105, 135, 200])
             
             exif_dict = {
                 '0th': {
@@ -396,7 +233,7 @@ def generate_realistic_exif(is_fake, has_original_exif=False):
                     piexif.ImageIFD.Model: model,
                     piexif.ImageIFD.Software: software,
                     piexif.ImageIFD.DateTime: timestamp,
-                    piexif.ImageIFD.Artist: random.choice([b'Professional Photographer', b'Content Creator', b'Mobile Photographer', b'']),
+                    piexif.ImageIFD.Artist: random.choice([b'Professional Photographer', b'Content Creator', b'']),
                     piexif.ImageIFD.Copyright: random.choice([b'All Rights Reserved', b'Creative Commons', b'']),
                     piexif.ImageIFD.XResolution: (72, 1),
                     piexif.ImageIFD.YResolution: (72, 1),
@@ -409,30 +246,22 @@ def generate_realistic_exif(is_fake, has_original_exif=False):
                     piexif.ExifIFD.FNumber: fnumber,
                     piexif.ExifIFD.ISOSpeedRatings: iso,
                     piexif.ExifIFD.FocalLength: (focal_length, 10),
-                    piexif.ExifIFD.ExposureProgram: random.choice([1, 2, 3, 4]),  # Manual, Normal, Aperture priority, Shutter priority
-                    piexif.ExifIFD.WhiteBalance: random.choice([0, 1]),  # Auto, Manual
-                    piexif.ExifIFD.Flash: random.choice([0, 1, 9, 16, 24, 25]),  # Various flash modes
-                    piexif.ExifIFD.MeteringMode: random.choice([1, 2, 3, 4, 5, 6]),  # Various metering modes
+                    piexif.ExifIFD.ExposureProgram: random.choice([1, 2, 3]),
+                    piexif.ExifIFD.WhiteBalance: random.choice([0, 1]),
+                    piexif.ExifIFD.Flash: random.choice([0, 1, 9, 16]),
+                    piexif.ExifIFD.MeteringMode: random.choice([1, 2, 3, 4, 5]),
                 },
                 'GPS': {
-                    piexif.GPSIFD.GPSVersion: b'\x02\x02\x00\x00',
                     piexif.GPSIFD.GPSLatitude: [(random.randint(0, 90), 1), (random.randint(0, 59), 1), (random.randint(0, 59), 1)],
                     piexif.GPSIFD.GPSLongitude: [(random.randint(0, 180), 1), (random.randint(0, 59), 1), (random.randint(0, 59), 1)],
-                    piexif.GPSIFD.GPSAltitude: (random.randint(0, 3000), 1) if random.random() < 0.8 else (0, 0),
-                    piexif.GPSIFD.GPSDateStamp: timestamp,
                 }
             }
-            
-            # Add processing software for RAW conversions
-            if random.random() < 0.5 and make not in [b'Apple', b'Samsung', b'Google']:
-                exif_dict['0th'][piexif.ImageIFD.ProcessingSoftware] = b'Adobe Camera Raw'
             
             # Add lens info for interchangeable lens cameras
             if make not in [b'Apple', b'Samsung', b'Google', b'Xiaomi', b'OnePlus', b'Huawei'] and random.random() < 0.7:
                 exif_dict['Exif'][piexif.ExifIFD.LensMake] = make
                 exif_dict['Exif'][piexif.ExifIFD.LensModel] = random.choice([
-                    b'24-70mm f/2.8', b'70-200mm f/2.8', b'50mm f/1.4', b'85mm f/1.8', 
-                    b'16-35mm f/2.8', b'24-105mm f/4', b'100-400mm f/5.6'
+                    b'24-70mm f/2.8', b'70-200mm f/2.8', b'50mm f/1.4', b'85mm f/1.8'
                 ])
         
         return piexif.dump(exif_dict)
@@ -443,15 +272,15 @@ def extract_exif_features(exif_dict):
     if not exif_dict:
         return {
             'missing_count': 10,
-            'has_camera_info': False,
-            'has_software': False,
-            'software_suspicious': False,
-            'has_timestamp': False,
-            'timestamp_consistent': False,
+            'has_camera_info': 0,
+            'has_software': 0,
+            'software_suspicious': 0,
+            'has_timestamp': 0,
+            'timestamp_consistent': 0,
             'exif_total_tags': 0,
-            'has_gps': False,
-            'has_flash': False,
-            'has_orientation': False
+            'has_gps': 0,
+            'has_flash': 0,
+            'has_orientation': 0
         }
     
     try:
@@ -464,35 +293,37 @@ def extract_exif_features(exif_dict):
         suspicious_software = is_suspicious_software(software_value)
         
         has_timestamp = piexif.ExifIFD.DateTimeOriginal in exif['Exif']
-        has_gps = bool(exif['GPS'])
+        has_gps = len(exif['GPS']) > 0
         has_flash = piexif.ExifIFD.Flash in exif['Exif']
+        has_orientation = piexif.ImageIFD.Orientation in exif['0th']
         
         total_tags = sum(len(v) for v in exif.values())
         
         return {
-            'missing_count': max(0, 20 - total_tags),  # Fewer tags = more suspicious
+            'missing_count': max(0, 20 - total_tags),
             'has_camera_info': 1 if has_camera else 0,
             'has_software': 1 if has_software else 0,
             'software_suspicious': 1 if suspicious_software else 0,
             'has_timestamp': 1 if has_timestamp else 0,
-            'timestamp_consistent': 1,  # Can be enhanced with consistency checks
+            'timestamp_consistent': 1,
             'exif_total_tags': total_tags,
             'has_gps': 1 if has_gps else 0,
             'has_flash': 1 if has_flash else 0,
-            'has_orientation': 1 if piexif.ImageIFD.Orientation in exif['0th'] else 0
+            'has_orientation': 1 if has_orientation else 0
         }
-    except:
+    except Exception as e:
+        # Return default features on error
         return {
             'missing_count': 10,
-            'has_camera_info': False,
-            'has_software': False,
-            'software_suspicious': False,
-            'has_timestamp': False,
-            'timestamp_consistent': False,
+            'has_camera_info': 0,
+            'has_software': 0,
+            'software_suspicious': 0,
+            'has_timestamp': 0,
+            'timestamp_consistent': 0,
             'exif_total_tags': 0,
-            'has_gps': False,
-            'has_flash': False,
-            'has_orientation': False
+            'has_gps': 0,
+            'has_flash': 0,
+            'has_orientation': 0
         }
 
 # Fast safe hash function
@@ -506,7 +337,7 @@ def get_hash(fp):
     except:
         return None
 
-# Image processing function - PRESERVES AND ADDS metadata
+# Image processing function
 def process(fp, out_dir, label, idx, is_fake):
     try:
         # Open image
@@ -522,7 +353,7 @@ def process(fp, out_dir, label, idx, is_fake):
         # Extract features for CSV export
         features = extract_exif_features(enhanced_exif if enhanced_exif else original_exif)
         features['image_path'] = f"{label}_{idx}.jpg"
-        features['label'] = 1 if is_fake else 0  # 1=fake, 0=real
+        features['label'] = 1 if is_fake else 0
         
         # Convert to RGB if needed
         if img.mode in ('RGBA', 'LA', 'P'):
@@ -549,17 +380,14 @@ def process(fp, out_dir, label, idx, is_fake):
         
         img.save(out_dir / f"{label}_{idx}.jpg", **save_kwargs)
         return features
-    except UnidentifiedImageError:
-        return None
     except Exception as e:
-        print(f"Error processing {fp}: {e}")
+        # Silently skip problematic images
         return None
 
 # Preprocessing function with CSV export
 def preprocess(src, dst, label, is_fake):
     if not src.exists():
         print(f"⚠️ Warning: Source path does not exist: {src}")
-        print(f"Please update SRC_REAL and SRC_FAKE paths to your Google Drive directories")
         return []
     
     print(f"\nScanning {src} for images...")
@@ -596,10 +424,8 @@ def preprocess(src, dst, label, is_fake):
         if result:
             features_list.append(result)
             count += 1
-
-        # Progress indicator
-        if count % 500 == 0 and count > 0:
-            print(f"Processed {count}/{MAX_IMAGES} {label} images...")
+            if count % 100 == 0:
+                print(f"Processed {count} {label} images...")
 
     print(f"""
 ========================
@@ -607,7 +433,6 @@ def preprocess(src, dst, label, is_fake):
 Processed: {count}
 Duplicates skipped: {skipped_dup}
 Bad files skipped: {skipped_bad}
-EXIF metadata: ADDED/ENHANCED ✓
 ========================
 """)
     return features_list
@@ -616,14 +441,12 @@ if __name__ == "__main__":
     import pandas as pd
     
     print("=" * 50)
-    print("Processing REAL images from Google Drive...")
-    print("Adding realistic EXIF metadata to images without it")
+    print("Processing REAL images...")
     print("=" * 50)
     real_features = preprocess(SRC_REAL, OUT_REAL, "real", is_fake=False)
     
     print("\n" + "=" * 50)
-    print("Processing FAKE images from Google Drive...")
-    print("Adding suspicious EXIF metadata to fake images")
+    print("Processing FAKE images...")
     print("=" * 50)
     fake_features = preprocess(SRC_FAKE, OUT_FAKE, "fake", is_fake=True)
     
@@ -634,11 +457,7 @@ if __name__ == "__main__":
         df.to_csv("data/exif_features.csv", index=False)
         print(f"\n✅ EXIF features saved to data/exif_features.csv")
         print(f"   Total samples: {len(df)}")
-        print(f"   Features: {', '.join([c for c in df.columns if c not in ['image_path', 'label']])}")
+        print(f"   Fake samples: {df['label'].sum()}")
+        print(f"   Real samples: {len(df) - df['label'].sum()}")
     
-    print("\n" + "=" * 50)
-    print("✅ COMPLETE! Processed images saved to:")
-    print(f"   Real images: {OUT_REAL.absolute()}")
-    print(f"   Fake images: {OUT_FAKE.absolute()}")
-    print(f"   EXIF features CSV: data/exif_features.csv")
-    print("=" * 50)
+    print("\n✅ COMPLETE!")
