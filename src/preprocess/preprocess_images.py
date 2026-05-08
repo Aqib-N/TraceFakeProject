@@ -4,8 +4,8 @@ from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 
 
-SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")  
-SRC_FAKE = Path("/content/drive/MyDrive/fake_image_processed")  
+SRC_REAL = Path("/content/drive/MyDrive/ffhq")  
+SRC_FAKE = Path("/content/drive/MyDrive/ai_faces")  
 
 # Output paths
 OUT_REAL = Path("data/processed/real")

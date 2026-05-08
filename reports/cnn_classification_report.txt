@@ -1,0 +1,23 @@
+TraceFake AI — CNN Classification Report
+============================================================
+
+              precision    recall  f1-score   support
+
+        FAKE       0.00      0.00      0.00        10
+        REAL       0.44      1.00      0.62         8
+
+    accuracy                           0.44        18
+   macro avg       0.22      0.50      0.31        18
+weighted avg       0.20      0.44      0.27        18
+
+
+Training Summary:
+================
+Best Validation Accuracy: 0.5556
+Best Validation AUC: 0.6875
+Best Validation Precision: 0.4444
+Best Validation Recall: 1.0000
+
+Total Epochs Trained: 15
+Phase 1 Epochs: 10
+Phase 2 Epochs: 5

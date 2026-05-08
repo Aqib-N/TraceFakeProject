@@ -324,10 +324,26 @@ def plot_sample_predictions(model, val_gen, n_samples=8):
 plot_sample_predictions(model, val_gen)
 
 # =========================
-# 8. FINAL EVALUATION REPORT
+# 8. FINAL EVALUATION REPORT (FIXED)
 # =========================
 from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
+
+# Extract metrics from training history
+all_val_acc = history1.history['val_accuracy'] + history2.history['val_accuracy']
+all_val_auc = history1.history['val_auc'] + history2.history['val_auc']
+all_val_precision = history1.history['val_precision'] + history2.history['val_precision']
+all_val_recall = history1.history['val_recall'] + history2.history['val_recall']
+
+best_val_acc = max(all_val_acc)
+best_val_auc = max(all_val_auc)
+best_val_precision = max(all_val_precision)
+best_val_recall = max(all_val_recall)
+
+print(f"\nBest Validation Accuracy: {best_val_acc:.4f}")
+print(f"Best Validation AUC: {best_val_auc:.4f}")
+print(f"Best Validation Precision: {best_val_precision:.4f}")
+print(f"Best Validation Recall: {best_val_recall:.4f}")
 
 val_gen.reset()
 y_true = val_gen.classes
@@ -344,8 +360,15 @@ with open(REPORT_DIR / "cnn_classification_report.txt", "w") as f:
     f.write("TraceFake AI — CNN Classification Report\n")
     f.write("=" * 60 + "\n\n")
     f.write(report)
-    f.write(f"\n\nBest Validation Accuracy: {max(val_acc):.4f}\n")
-    f.write(f"Best Validation AUC: {max(val_auc):.4f}\n")
+    f.write(f"\n\nTraining Summary:\n")
+    f.write(f"================\n")
+    f.write(f"Best Validation Accuracy: {best_val_acc:.4f}\n")
+    f.write(f"Best Validation AUC: {best_val_auc:.4f}\n")
+    f.write(f"Best Validation Precision: {best_val_precision:.4f}\n")
+    f.write(f"Best Validation Recall: {best_val_recall:.4f}\n")
+    f.write(f"\nTotal Epochs Trained: {len(all_val_acc)}\n")
+    f.write(f"Phase 1 Epochs: {len(history1.history['accuracy'])}\n")
+    f.write(f"Phase 2 Epochs: {len(history2.history['accuracy'])}\n")
 
 # Confusion matrix
 cm = confusion_matrix(y_true, y_pred)
