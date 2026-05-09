@@ -11,8 +11,8 @@ from datetime import datetime, timedelta
 # SRC_FAKE = Path("/content/drive/MyDrive/fake_image_processed")  
 
 # Direct paths for Kaggle notebook
-SRC_REAL = Path("/kaggle/input/real-vs-fake-image-dataset/real_image_processed/real_image_processed")
-SRC_FAKE = Path("/kaggle/input/real-vs-fake-image-dataset/fake_image_processed/fake_image_processed")
+SRC_REAL = Path("/kaggle/input/datasets/aqibnawaz7/real-vs-fake-image-dataset/real_image_processed/real_image_processed")
+SRC_FAKE = Path("/kaggle/input/datasets/aqibnawaz7/real-vs-fake-image-dataset/fake_image_processed/fake_image_processed")
 
 # Output paths
 OUT_REAL = Path("data/processed/real")
