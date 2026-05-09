@@ -4,9 +4,15 @@ import piexif
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 from datetime import datetime, timedelta
+# google drive pats from google colab
+#Real =>  https://drive.google.com/drive/folders/1k5yNf2qrYYPtyn4EVFXxR09Bi_lEZpsK?usp=sharing
+#Fake =>  https://drive.google.com/drive/folders/12LcphCF_-TOLCDeln06PGLwFuh-DbHfi?usp=drive_link
+# SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")  
+# SRC_FAKE = Path("/content/drive/MyDrive/fake_image_processed")  
 
-SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")  
-SRC_FAKE = Path("/content/drive/MyDrive/fake_image_processed")  
+# Direct paths for Kaggle notebook
+SRC_REAL = Path("/kaggle/input/real-vs-fake-image-dataset/real_image_processed/real_image_processed")
+SRC_FAKE = Path("/kaggle/input/real-vs-fake-image-dataset/fake_image_processed/fake_image_processed")
 
 # Output paths
 OUT_REAL = Path("data/processed/real")
