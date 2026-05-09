@@ -1,6 +1,6 @@
 # ── Core ML ───────────────────────────────────────────────────────────────────
-tensorflow-cpu          # FIX 1: use CPU build — you have no GPU, saves ~500MB
-numpy>=1.24,<2.0        # FIX 2: numpy 2.x breaks TF and XGBoost — pin below 2.0
+tensorflow       
+numpy      
 pandas>=2.0
 scikit-learn>=1.3
 
