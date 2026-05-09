@@ -401,7 +401,8 @@ if step == 1:
                 st.error(f"⚠️ {msg}")
             else:
                 img = Image.open(uploaded_file)
-                st.image(img, use_container_width=True, caption="Preview")
+                # st.image(img, use_container_width=True, caption="Preview")
+                st.image(img, width='stretch', caption="Preview")
 
                 st.markdown(f"""
                 <div style='font-size:12px; color:#4A7080; margin:8px 0;'>

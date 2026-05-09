@@ -1,3 +1,0 @@
-libgl1
-libgomp1
-libxext6
