@@ -1,0 +1,10 @@
+missing_count
+has_camera_info
+has_software
+software_suspicious
+has_timestamp
+timestamp_consistent
+exif_total_tags
+has_gps
+has_flash
+has_orientation
