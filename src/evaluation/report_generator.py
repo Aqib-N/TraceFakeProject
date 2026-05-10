@@ -1,6 +1,5 @@
 """
-TraceFake AI — Comprehensive Evaluation & Reporting
-Generates all required assignment deliverables
+report_generator.py
 """
 
 import numpy as np
