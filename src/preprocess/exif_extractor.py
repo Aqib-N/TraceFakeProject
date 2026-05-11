@@ -1,8 +1,3 @@
-"""
-exif_extractor.py
-TraceFake AI — Enhanced EXIF Metadata Extractor
-"""
-
 from pathlib import Path
 from PIL import Image, ExifTags
 import numpy as np
@@ -13,8 +8,6 @@ FIELDS = {
     "Orientation", "ImageWidth", "ImageLength"
 }
 
-# FIX 1: Expanded to match training data (preprocess_images.py FAKE_SOFTWARE list)
-# FIX 2: Removed "photoshop", "gimp", "paint" — real photographers use these
 SUSPICIOUS_SOFTWARE = [
     "deepfake", "deepfacelab", "faceswap", "roop",
     "midjourney", "dall-e", "dalle", "stable diffusion",
@@ -33,11 +26,10 @@ def extract(image_path):
 
     try:
         with Image.open(image_path) as img:
-            # FIX 3: PNG files don't have _getexif — use getexif() which works for both
             try:
-                exif_raw = img.getexif()          # Pillow ≥ 6.0, works on JPEG & PNG
+                exif_raw = img.getexif() 
             except AttributeError:
-                exif_raw = img._getexif() or {}   # Fallback for older Pillow
+                exif_raw = img._getexif() or {}  
 
             if exif_raw:
                 for tag_id, value in exif_raw.items():
@@ -77,9 +69,9 @@ def extract_features(exif_data):
 
     # Camera info
     if "Make" in exif_data and "Model" in exif_data:
-        features["has_camera_info"] = 1  # FIX 4: require BOTH, not just one
+        features["has_camera_info"] = 1  
     elif "Make" in exif_data or "Model" in exif_data:
-        features["has_camera_info"] = 1  # partial — still flag as present
+        features["has_camera_info"] = 1 
 
     # Software
     if "Software" in exif_data:

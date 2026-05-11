@@ -1,8 +1,3 @@
-"""
-train_cnn.py
-TraceFake AI — Improved CNN Training Pipeline
-"""
-
 import os
 import logging
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -17,9 +12,7 @@ import seaborn as sns
 import numpy as np
 from pathlib import Path
 
-# =============================================================================
 # CONFIGURATION
-# =============================================================================
 IMG_SIZE = (224, 224)
 BATCH_SIZE = 32
 EPOCHS_PHASE1 = 10
@@ -36,9 +29,7 @@ REPORT_DIR = Path("reports")
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
-# =============================================================================
 # DATA PIPELINE
-# =============================================================================
 train_datagen = ImageDataGenerator(
     preprocessing_function=tf.keras.applications.efficientnet.preprocess_input,
     validation_split=0.2,
@@ -82,9 +73,7 @@ print(f"Training samples  : {train_gen.samples}")
 print(f"Validation samples: {val_gen.samples}")
 print(f"Class indices     : {train_gen.class_indices}")
 
-# =============================================================================
 # MODEL
-# =============================================================================
 base = tf.keras.applications.EfficientNetB0(
     include_top=False,
     weights="imagenet",
@@ -112,9 +101,7 @@ model = models.Model(inputs, outputs)
 print(f"\nTotal params     : {model.count_params():,}")
 print(f"Trainable params : {sum(tf.size(w).numpy() for w in model.trainable_weights):,}")
 
-# =============================================================================
 # LOSS FUNCTION
-# =============================================================================
 loss_fn = tf.keras.losses.BinaryFocalCrossentropy(
     gamma=2,
     apply_class_balancing=True,
@@ -127,9 +114,7 @@ metrics = [
     tf.keras.metrics.AUC(name="auc"),
 ]
 
-# =============================================================================
 # PHASE 1
-# =============================================================================
 model.compile(
     optimizer=optimizers.Adam(learning_rate=INITIAL_LR),
     loss=loss_fn,
@@ -170,9 +155,7 @@ history1 = model.fit(
     ],
 )
 
-# =============================================================================
 # PHASE 2
-# =============================================================================
 base.trainable = True
 
 fine_tune_at = len(base.layers) - 30
@@ -221,23 +204,17 @@ history2 = model.fit(
     ],
 )
 
-# =============================================================================
 # SAVE MODEL
-# =============================================================================
 model.save(str(MODEL_DIR / "cnn.keras"))
 print("\n✅ Final model saved")
 
-# =============================================================================
 # LOAD BEST MODEL
-# =============================================================================
 model = tf.keras.models.load_model(
     MODEL_DIR / "cnn_best.keras",
     compile=False,
 )
 
-# =============================================================================
 # FINAL EVALUATION
-# =============================================================================
 val_gen.reset()
 
 y_true = val_gen.classes
@@ -257,9 +234,7 @@ report = classification_report(
 
 print(report)
 
-# =============================================================================
 # CONFUSION MATRIX
-# =============================================================================
 cm = confusion_matrix(y_true, y_pred)
 
 plt.figure(figsize=(6, 5))
@@ -280,3 +255,31 @@ plt.savefig(REPORT_DIR / "confusion_matrix.png", dpi=150)
 plt.close()
 
 print("✅ Reports generated")
+
+# TRAINING CURVES (SAVE GRAPH)
+history = {}
+
+for k in history1.history.keys():
+    history[k] = history1.history[k] + history2.history[k]
+
+plt.figure(figsize=(10, 5))
+
+# Accuracy
+plt.subplot(1, 2, 1)
+plt.plot(history["accuracy"], label="Train Accuracy")
+plt.plot(history["val_accuracy"], label="Val Accuracy")
+plt.title("Accuracy Curve")
+plt.legend()
+
+# Loss
+plt.subplot(1, 2, 2)
+plt.plot(history["loss"], label="Train Loss")
+plt.plot(history["val_loss"], label="Val Loss")
+plt.title("Loss Curve")
+plt.legend()
+
+plt.tight_layout()
+plt.savefig(REPORT_DIR / "training_curves.png", dpi=150)
+plt.close()
+
+print("✅ Training curves saved → reports/training_curves.png")

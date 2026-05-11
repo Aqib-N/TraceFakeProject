@@ -1,8 +1,3 @@
-"""
-train_exif_model.py
-TraceFake AI — XGBoost EXIF Classifier Training
-"""
-
 import pandas as pd
 import numpy as np
 import joblib
@@ -15,11 +10,7 @@ import seaborn as sns
 import warnings
 warnings.filterwarnings("ignore")
 
-# =============================================================================
 # LOAD DATA
-# FIX: preprocess_images.py saves to data/exif_features.csv
-#      (was incorrectly pointing to data/metadata.csv)
-# =============================================================================
 data_path = Path("data/exif_features.csv")
 if not data_path.exists():
     # Fallback: also check old name
@@ -58,9 +49,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 print(f"\nTraining: {len(X_train)} | Test: {len(X_test)}")
 
-# =============================================================================
 # HYPERPARAMETER TUNING
-# =============================================================================
 param_grid = {
     "n_estimators":     [200, 300],
     "max_depth":        [4, 5],
@@ -91,9 +80,7 @@ except KeyboardInterrupt:
 print(f"\nBest params : {grid.best_params_}")
 print(f"Best CV AUC : {grid.best_score_:.4f}")
 
-# =============================================================================
 # EVALUATE
-# =============================================================================
 best_model = grid.best_estimator_
 y_pred       = best_model.predict(X_test)
 y_pred_proba = best_model.predict_proba(X_test)[:, 1]
@@ -112,9 +99,7 @@ importance = pd.DataFrame({
 print("\nFeature Importance:")
 print(importance.to_string(index=False))
 
-# =============================================================================
 # PLOTS
-# =============================================================================
 Path("reports").mkdir(parents=True, exist_ok=True)
 
 plt.figure(figsize=(10, 6))
@@ -133,9 +118,7 @@ plt.title("EXIF Model Confusion Matrix")
 plt.savefig("reports/confusion_matrix_exif.png", dpi=150)
 plt.close()
 
-# =============================================================================
 # SAVE MODEL
-# =============================================================================
 Path("src/models").mkdir(parents=True, exist_ok=True)
 joblib.dump(best_model, "src/models/exif_xgb.pkl")
 print("\n✅ XGBoost model saved → src/models/exif_xgb.pkl")

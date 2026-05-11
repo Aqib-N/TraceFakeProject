@@ -1,7 +1,3 @@
-"""
-report_generator.py
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -13,9 +9,7 @@ OUTPUT_DIR = Path("reports")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 
-# -------------------------
 # CONFUSION MATRIX PLOT
-# -------------------------
 def plot_confusion_matrix(y_true, y_pred, labels=["FAKE","REAL"], save_name="confusion_matrix.png"):
     cm = confusion_matrix(y_true, y_pred)
     
@@ -44,9 +38,7 @@ def plot_confusion_matrix(y_true, y_pred, labels=["FAKE","REAL"], save_name="con
     return cm
 
 
-# -------------------------
 # CLASSIFICATION REPORT
-# -------------------------
 def save_classification_report(y_true, y_pred, save_name="classification_report.txt"):
     report = classification_report(y_true, y_pred, target_names=["FAKE","REAL"])
     
@@ -80,9 +72,7 @@ False Negatives: {fn}
     return extended_report
 
 
-# -------------------------
 # ROC CURVE
-# -------------------------
 def plot_roc_curve(y_true, y_scores, save_name="roc_curve.png"):
     fpr, tpr, _ = roc_curve(y_true, y_scores)
     roc_auc = auc(fpr, tpr)
@@ -105,9 +95,7 @@ def plot_roc_curve(y_true, y_scores, save_name="roc_curve.png"):
     return roc_auc
 
 
-# -------------------------
 # FULL EVALUATION PIPELINE
-# -------------------------
 def evaluate_model(y_true, y_pred, y_scores=None, model_name="TraceFake AI"):
     print(f"\n{'='*60}")
     print(f"    {model_name} — COMPREHENSIVE EVALUATION")

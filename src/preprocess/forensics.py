@@ -1,8 +1,3 @@
-"""
-forensics.py
-TraceFake AI — Forensic Signal Extraction
-"""
-
 import uuid
 import tempfile
 import numpy as np
@@ -11,15 +6,8 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageEnhance
 
 
-# =============================================================================
 # ERROR LEVEL ANALYSIS (ELA)
-# =============================================================================
 def ela_analysis(image_path, quality: int = 90) -> float:
-    """
-    Error Level Analysis — detects recompression artifacts.
-    FIX: use a unique temp file per call (no race condition for concurrent users).
-    """
-    # FIX 1: unique temp file instead of hardcoded "temp_ela.jpg"
     tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
     temp_path = Path(tmp.name)
     tmp.close()
@@ -43,14 +31,12 @@ def ela_analysis(image_path, quality: int = 90) -> float:
         return float(min(ela_score * 2.0, 1.0))
 
     except Exception:
-        return 0.5   # neutral on error, not 0.0
+        return 0.5  
     finally:
         temp_path.unlink(missing_ok=True)
 
 
-# =============================================================================
 # NOISE / TEXTURE ANALYSIS
-# =============================================================================
 def noise_analysis(image_path) -> float:
     """
     Laplacian variance — detects unnatural GAN smoothness.
@@ -64,10 +50,8 @@ def noise_analysis(image_path) -> float:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         noise = cv2.Laplacian(gray, cv2.CV_64F).var()
 
-        # FIX 2: normalize relative to image size so small crops aren't penalized
         h, w = gray.shape
         area = h * w
-        # Scale: 500 was calibrated for 224×224; adjust for actual size
         scale = 500.0 * (area / (224 * 224))
         normalized = float(min(noise / scale, 1.0))
         return normalized
@@ -75,10 +59,7 @@ def noise_analysis(image_path) -> float:
     except Exception:
         return 0.5
 
-
-# =============================================================================
 # JPEG QUALITY ESTIMATION
-# =============================================================================
 def estimate_jpeg_quality(image_path) -> float:
     """
     Estimate JPEG quality — fakes often have inconsistent compression.
@@ -87,7 +68,7 @@ def estimate_jpeg_quality(image_path) -> float:
     try:
         img = Image.open(image_path)
         if img.format != "JPEG":
-            return 0.75   # non-JPEG is neutral, not guaranteed real
+            return 0.75   
 
         img_array = np.array(img)
         file_size = Path(image_path).stat().st_size
@@ -95,7 +76,7 @@ def estimate_jpeg_quality(image_path) -> float:
         if pixels == 0:
             return 0.5
 
-        bpp = (file_size * 8) / pixels   # bits per pixel
+        bpp = (file_size * 8) / pixels  
         quality_estimate = float(min(bpp / 1.5, 1.0))
         return quality_estimate
 
@@ -103,9 +84,7 @@ def estimate_jpeg_quality(image_path) -> float:
         return 0.5
 
 
-# =============================================================================
 # CHROMATIC ABERRATION ANALYSIS
-# =============================================================================
 def chromatic_analysis(image_path) -> float:
     """
     Detect chromatic aberration — real lenses have it, fakes often don't.
@@ -125,9 +104,7 @@ def chromatic_analysis(image_path) -> float:
         return 0.5
 
 
-# =============================================================================
 # COMBINED FORENSIC SCORE
-# =============================================================================
 def forensic_score(image_path) -> float:
     """
     Weighted combination of forensic signals.
