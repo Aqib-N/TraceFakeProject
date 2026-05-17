@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 from pathlib import Path
-
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 # Config 
 try:
     from config import (
@@ -93,7 +94,7 @@ outputs = layers.Dense(1, activation="sigmoid")(x)
 
 
 # 3. Phase 1: Train Head (Frozen Backbone) 
-model.compile(
+models.compile(
     optimizer=optimizers.Adam(learning_rate=INITIAL_LR),
     loss="binary_crossentropy",
     metrics=[
@@ -108,7 +109,7 @@ print("\n" + "=" * 60)
 print("PHASE 1: Training classifier head")
 print("=" * 60)
 
-history1 = model.fit(
+history1 = models.fit(
     train_gen,
     validation_data=val_gen,
     epochs=EPOCHS_PHASE1,
@@ -150,7 +151,7 @@ lr_schedule = tf.keras.optimizers.schedules.CosineDecay(
     alpha=1e-6,  # minimum LR floor
 )
 
-model.compile(
+models.compile(
     optimizer=optimizers.Adam(learning_rate=lr_schedule),
     loss="binary_crossentropy",
     metrics=[
@@ -166,7 +167,7 @@ print(f"PHASE 2: Fine-tuning top 30% backbone layers")
 print(f"Unfrozen from layer {fine_tune_at} of {len(base.layers)}")
 print("=" * 60)
 
-history2 = model.fit(
+history2 = models.fit(
     train_gen,
     validation_data=val_gen,
     epochs=EPOCHS_PHASE2,
@@ -187,7 +188,7 @@ history2 = model.fit(
 
 
 # 5. Save Final Model 
-model.save(str(MODEL_DIR / "cnn.keras"))
+models.save(str(MODEL_DIR / "cnn.keras"))
 print("\n✅ Final model saved")
 
 
@@ -196,7 +197,7 @@ print("\n✅ Final model saved")
 def get_metric(history, base_name: str):
     """
     FIX: Keras appends _1, _2 suffixes to duplicate metric names when
-    model.compile() is called a second time for Phase 2. This helper
+    models.compile() is called a second time for Phase 2. This helper
     finds the right key regardless of suffix.
     """
     for key in history.history:
@@ -304,7 +305,7 @@ def plot_sample_predictions(model, val_gen, n_samples: int = 8):
 
     images = np.array(images[:n_samples])
     labels = np.array(labels[:n_samples])
-    preds  = model.predict(images, verbose=0)
+    preds  = models.predict(images, verbose=0)
 
     fig, axes = plt.subplots(2, 4, figsize=(16, 8))
     fig.suptitle("TraceFake AI — Sample Test Predictions", fontsize=14, fontweight="bold")
@@ -347,7 +348,7 @@ import seaborn as sns
 # FINAL EVALUATION
 val_gen.reset()
 y_true       = val_gen.classes
-y_pred_proba = model.predict(val_gen, steps=val_steps, verbose=0)
+y_pred_proba = models.predict(val_gen, steps=val_steps, verbose=0)
 y_pred       = (y_pred_proba > 0.5).astype(int).flatten()[: len(y_true)]
 
 # Summary from training history

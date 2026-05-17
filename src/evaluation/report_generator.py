@@ -5,7 +5,8 @@ from sklearn.metrics import confusion_matrix, classification_report, roc_curve, 
 import pandas as pd
 from pathlib import Path
 from config import REPORT_DIR
-
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 OUTPUT_DIR = REPORT_DIR
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -5,6 +5,8 @@ import pandas as pd
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 from datetime import datetime, timedelta
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # Google Colab / Drive:
 # SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")

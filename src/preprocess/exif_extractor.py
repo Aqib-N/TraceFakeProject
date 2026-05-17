@@ -2,7 +2,8 @@ from pathlib import Path
 from PIL import Image, ExifTags
 from datetime import datetime
 import numpy as np
-
+import sys, os
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 # Import canonical feature list and suspicious-software terms from config
 try:
     from config import SUSPICIOUS_SOFTWARE_TERMS, EXIF_FEATURE_COLS

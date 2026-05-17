@@ -9,7 +9,8 @@ from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 warnings.filterwarnings("ignore")
 
 # Config
