@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 SRC_REAL = Path("/kaggle/input/datasets/aqibnawaz7/real-vs-fake-image-dataset/real_image_processed/real_image_processed")
 SRC_FAKE = Path("/kaggle/input/datasets/aqibnawaz7/real-vs-fake-image-dataset/fake_image_processed/fake_image_processed")
 
-# Google Colab (uncomment to use) 
+# Google Colab (uncomment to use)
 # SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")
 # SRC_FAKE = Path("/content/drive/MyDrive/fake_image_processed")
 
@@ -30,7 +30,7 @@ MAX_IMAGES = 21300
 NUM_WORKERS = 4
 
 
-# Camera & software lists 
+# Camera & software lists
 
 REAL_CAMERAS = [
     (b'Canon',      b'EOS R5'),         (b'Canon',      b'EOS R6 Mark II'),
@@ -129,12 +129,9 @@ SMARTPHONE_MAKES = {b'Apple', b'Samsung', b'Google', b'Xiaomi',
                     b'OnePlus', b'Huawei', b'Nothing', b'Vivo', b'Asus'}
 
 
-# Helpers 
+# Helpers
 
 def is_suspicious_software(software_name) -> bool:
-    """
-    FIX: original accepted bytes but callers passed str — now handles both.
-    """
     if not software_name:
         return False
     if isinstance(software_name, bytes):
@@ -145,10 +142,6 @@ def is_suspicious_software(software_name) -> bool:
 
 
 def is_plausible_timestamp(dt_string: str) -> bool:
-    """
-    Mirror of exif_extractor.timestamp_is_plausible().
-    Returns True if datetime is within a realistic photographic range.
-    """
     if not dt_string:
         return False
     for fmt in ("%Y:%m:%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
@@ -161,7 +154,17 @@ def is_plausible_timestamp(dt_string: str) -> bool:
     return False
 
 
-# EXIF generation 
+def _safe_ifd_len(ifd_value) -> int:
+    """Return len() of an IFD dict, returning 0 if it is None or not a dict."""
+    if ifd_value is None:
+        return 0
+    try:
+        return len(ifd_value)
+    except TypeError:
+        return 0
+
+
+# EXIF generation
 
 def generate_realistic_exif(is_fake: bool, has_original_exif: bool = False):
     """Generate realistic EXIF bytes with modern device patterns."""
@@ -254,21 +257,21 @@ def generate_realistic_exif(is_fake: bool, has_original_exif: bool = False):
         return None
 
 
-# Feature extraction (synced with exif_extractor.py) 
+# Feature extraction (synced with exif_extractor.py)
 
 _NULL_FEATURES = {
-    'missing_count':       10,
-    'has_camera_info':     0,
-    'has_software':        0,
-    'software_suspicious': 0,
-    'has_timestamp':       0,
-    'timestamp_consistent':0,
-    'timestamp_plausible': 0,  
-    'timestamp_future':    0,  
-    'exif_total_tags':     0,
-    'has_gps':             0,
-    'has_flash':           0,
-    'has_orientation':     0,
+    'missing_count':        10,
+    'has_camera_info':      0,
+    'has_software':         0,
+    'software_suspicious':  0,
+    'has_timestamp':        0,
+    'timestamp_consistent': 0,
+    'timestamp_plausible':  0,
+    'timestamp_future':     0,
+    'exif_total_tags':      0,
+    'has_gps':              0,
+    'has_flash':            0,
+    'has_orientation':      0,
 }
 
 
@@ -277,9 +280,9 @@ def extract_exif_features(exif_bytes) -> dict:
     Extract features from raw EXIF bytes.
     Output columns match EXIF_FEATURE_COLS in config.py exactly (12 columns).
 
-    New vs original:
-      - timestamp_plausible: 1 if DateTime passes is_plausible_timestamp()
-      - timestamp_future:    1 if DateTime is in the future
+    FIX: piexif.load() can return None for any IFD (e.g. GPS, Interop).
+         All IFD accesses now go through dict.get() with a fallback of {},
+         and tag counting uses _safe_ifd_len() which handles None gracefully.
     """
     if not exif_bytes:
         return dict(_NULL_FEATURES)
@@ -287,36 +290,45 @@ def extract_exif_features(exif_bytes) -> dict:
     try:
         exif = piexif.load(exif_bytes)
 
-        has_camera  = (piexif.ImageIFD.Make  in exif['0th'] and
-                       piexif.ImageIFD.Model in exif['0th'])
-        has_software = piexif.ImageIFD.Software in exif['0th']
+        # ── Safely retrieve each IFD, defaulting to {} when None ────────────
+        ifd_0th   = exif.get('0th')   or {}
+        ifd_exif  = exif.get('Exif')  or {}
+        ifd_gps   = exif.get('GPS')   or {}
 
-        software_val = exif['0th'].get(piexif.ImageIFD.Software, b'')
+        # ── Camera / software ────────────────────────────────────────────────
+        has_camera  = (piexif.ImageIFD.Make  in ifd_0th and
+                       piexif.ImageIFD.Model in ifd_0th)
+        has_software = piexif.ImageIFD.Software in ifd_0th
+
+        software_val = ifd_0th.get(piexif.ImageIFD.Software, b'')
         if isinstance(software_val, bytes):
             software_str = software_val.decode('utf-8', errors='ignore')
         else:
             software_str = str(software_val)
         suspicious = is_suspicious_software(software_str)
 
-        has_ts      = piexif.ExifIFD.DateTimeOriginal in exif['Exif']
-        has_gps     = len(exif.get('GPS', {})) > 0
-        has_flash   = piexif.ExifIFD.Flash       in exif['Exif']
-        has_orient  = piexif.ImageIFD.Orientation in exif['0th']
-        total_tags  = sum(len(v) for v in exif.values())
+        # ── Presence flags ───────────────────────────────────────────────────
+        has_ts     = piexif.ExifIFD.DateTimeOriginal in ifd_exif
+        has_gps    = len(ifd_gps) > 0
+        has_flash  = piexif.ExifIFD.Flash       in ifd_exif
+        has_orient = piexif.ImageIFD.Orientation in ifd_0th
 
-        # Timestamp plausibility (NEW)
-        raw_ts = exif['0th'].get(piexif.ImageIFD.DateTime, b'')
+        # ── Total tag count (FIX: _safe_ifd_len handles None IFDs) ──────────
+        total_tags = sum(_safe_ifd_len(v) for v in exif.values())
+
+        # ── Timestamp plausibility ───────────────────────────────────────────
+        raw_ts = ifd_0th.get(piexif.ImageIFD.DateTime, b'')
         if isinstance(raw_ts, bytes):
             ts_str = raw_ts.decode('utf-8', errors='ignore')
         else:
             ts_str = str(raw_ts)
 
-        plausible      = is_plausible_timestamp(ts_str)
-        future         = False
+        plausible = is_plausible_timestamp(ts_str)
+        future    = False
         if ts_str:
             for fmt in ("%Y:%m:%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
                 try:
-                    dt = datetime.strptime(ts_str.strip(), fmt)
+                    dt     = datetime.strptime(ts_str.strip(), fmt)
                     future = dt > datetime.now()
                     break
                 except ValueError:
@@ -328,7 +340,7 @@ def extract_exif_features(exif_bytes) -> dict:
             'has_software':         int(has_software),
             'software_suspicious':  int(suspicious),
             'has_timestamp':        int(has_ts),
-            'timestamp_consistent': 1,          
+            'timestamp_consistent': 1,          # placeholder; multi-tag check omitted
             'timestamp_plausible':  int(plausible),
             'timestamp_future':     int(future),
             'exif_total_tags':      total_tags,
@@ -342,7 +354,7 @@ def extract_exif_features(exif_bytes) -> dict:
         return dict(_NULL_FEATURES)
 
 
-# File hashing 
+# File hashing
 
 def get_hash(fp) -> str | None:
     try:
@@ -355,7 +367,7 @@ def get_hash(fp) -> str | None:
         return None
 
 
-# Single image processing 
+# Single image processing
 
 def process(fp, out_dir, label, idx, is_fake) -> dict | None:
     try:
@@ -384,11 +396,11 @@ def process(fp, out_dir, label, idx, is_fake) -> dict | None:
         img.save(out_dir / f"{label}_{idx}.jpg", **save_kwargs)
         return features
 
-    except Exception as e:
+    except Exception:
         return None
 
 
-# Batch preprocessing 
+# Batch preprocessing
 
 def preprocess(src: Path, dst: Path, label: str, is_fake: bool) -> list:
     if not src.exists():
@@ -399,8 +411,8 @@ def preprocess(src: Path, dst: Path, label: str, is_fake: bool) -> list:
     files = list(src.rglob("*"))
     random.shuffle(files)
 
-    valid_ext    = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
-    seen_hashes  = set()
+    valid_ext     = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
+    seen_hashes   = set()
     features_list = []
     count = skipped_dup = skipped_bad = 0
 
@@ -436,11 +448,9 @@ Bad files skipped : {skipped_bad}
     return features_list
 
 
-# Entry point 
+# Entry point
 
 if __name__ == "__main__":
-    import pandas as pd
-
     print("=" * 50)
     print("Processing REAL images...")
     print("=" * 50)
