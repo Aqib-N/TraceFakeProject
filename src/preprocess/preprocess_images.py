@@ -405,7 +405,7 @@ def preprocess(src: Path, dst: Path, label: str, is_fake: bool) -> list:
     count = skipped_dup = skipped_bad = 0
 
     for fp in files:
-        if len(unique) >= MAX_IMAGES:
+        if len(seen_hashes) >= MAX_IMAGES:
             break
         if fp.suffix.lower() not in valid_ext:
             continue
