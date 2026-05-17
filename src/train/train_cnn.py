@@ -8,7 +8,8 @@ import numpy as np
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-# Config 
+
+# Config
 try:
     from config import (
         IMG_SIZE, BATCH_SIZE, DATA_DIR, MODEL_DIR, REPORT_DIR,
@@ -29,7 +30,7 @@ except ImportError:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# 1. Data Pipeline 
+# 1. Data Pipeline
 train_datagen = ImageDataGenerator(
     rescale=1.0 / 255,
     validation_split=0.2,
@@ -70,11 +71,11 @@ print(f"Training samples  : {train_gen.samples}")
 print(f"Validation samples: {val_gen.samples}")
 print(f"Class indices     : {train_gen.class_indices}")
 
-steps_per_epoch = int(np.ceil(train_gen.samples  / BATCH_SIZE))
-val_steps       = int(np.ceil(val_gen.samples    / BATCH_SIZE))
+steps_per_epoch = int(np.ceil(train_gen.samples / BATCH_SIZE))
+val_steps       = int(np.ceil(val_gen.samples   / BATCH_SIZE))
 
 
-# 2. Model Architecture 
+# 2. Model Architecture
 base = tf.keras.applications.EfficientNetB0(
     include_top=False,
     weights="imagenet",
@@ -88,13 +89,14 @@ x      = layers.Dense(256, activation="swish")(x)
 x      = layers.Dropout(0.5)(x)
 x      = layers.Dense(128, activation="swish")(x)
 x      = layers.Dropout(0.3)(x)
-output = layers.Dense(1, activation="sigmoid")(x)
+output = layers.Dense(1, activation="sigmoid")(x)  # single output layer
 
-outputs = layers.Dense(1, activation="sigmoid")(x)
+# FIX: named 'model' to avoid clashing with the imported 'models' module
+model = models.Model(inputs=base.input, outputs=output)
 
 
-# 3. Phase 1: Train Head (Frozen Backbone) 
-models.compile(
+# 3. Phase 1: Train Head (Frozen Backbone)
+model.compile(
     optimizer=optimizers.Adam(learning_rate=INITIAL_LR),
     loss="binary_crossentropy",
     metrics=[
@@ -109,7 +111,7 @@ print("\n" + "=" * 60)
 print("PHASE 1: Training classifier head")
 print("=" * 60)
 
-history1 = models.fit(
+history1 = model.fit(
     train_gen,
     validation_data=val_gen,
     epochs=EPOCHS_PHASE1,
@@ -135,7 +137,7 @@ phase1_epochs_run = len(history1.history["accuracy"])
 print(f"\nPhase 1 completed: {phase1_epochs_run} epochs")
 
 
-# 4. Phase 2: Fine-Tune (Unfreeze top 30% of backbone) 
+# 4. Phase 2: Fine-Tune (Unfreeze top 30% of backbone)
 base.trainable = True
 fine_tune_at   = len(base.layers) - int(len(base.layers) * 0.30)
 for layer in base.layers[:fine_tune_at]:
@@ -143,15 +145,13 @@ for layer in base.layers[:fine_tune_at]:
 
 fine_tune_lr = INITIAL_LR / 10  # 1e-4
 
-# The original lambda scheduler used history1.epoch[-1] as an offset,
-# which breaks if Phase 1 early-stops, causing the LR to start mid-cycle.
 lr_schedule = tf.keras.optimizers.schedules.CosineDecay(
     initial_learning_rate=fine_tune_lr,
     decay_steps=EPOCHS_PHASE2 * steps_per_epoch,
-    alpha=1e-6,  # minimum LR floor
+    alpha=1e-6,
 )
 
-models.compile(
+model.compile(
     optimizer=optimizers.Adam(learning_rate=lr_schedule),
     loss="binary_crossentropy",
     metrics=[
@@ -167,7 +167,7 @@ print(f"PHASE 2: Fine-tuning top 30% backbone layers")
 print(f"Unfrozen from layer {fine_tune_at} of {len(base.layers)}")
 print("=" * 60)
 
-history2 = models.fit(
+history2 = model.fit(
     train_gen,
     validation_data=val_gen,
     epochs=EPOCHS_PHASE2,
@@ -187,8 +187,8 @@ history2 = models.fit(
 )
 
 
-# 5. Save Final Model 
-models.save(str(MODEL_DIR / "cnn.keras"))
+# 5. Save Final Model
+model.save(str(MODEL_DIR / "cnn.keras"))
 print("\n✅ Final model saved")
 
 
@@ -196,8 +196,8 @@ print("\n✅ Final model saved")
 
 def get_metric(history, base_name: str):
     """
-    FIX: Keras appends _1, _2 suffixes to duplicate metric names when
-    models.compile() is called a second time for Phase 2. This helper
+    Keras appends _1, _2 suffixes to duplicate metric names when
+    model.compile() is called a second time for Phase 2. This helper
     finds the right key regardless of suffix.
     """
     for key in history.history:
@@ -206,19 +206,19 @@ def get_metric(history, base_name: str):
     return []
 
 
-# 7. Training Graphs 
+# 7. Training Graphs
 
 def plot_training_history(h1, h2):
-    acc       = get_metric(h1, "accuracy")       + get_metric(h2, "accuracy")
-    val_acc   = get_metric(h1, "val_accuracy")   + get_metric(h2, "val_accuracy")
-    loss      = get_metric(h1, "loss")            + get_metric(h2, "loss")
-    val_loss  = get_metric(h1, "val_loss")        + get_metric(h2, "val_loss")
-    prec      = get_metric(h1, "precision")       + get_metric(h2, "precision")
-    val_prec  = get_metric(h1, "val_precision")   + get_metric(h2, "val_precision")
-    rec       = get_metric(h1, "recall")          + get_metric(h2, "recall")
-    val_rec   = get_metric(h1, "val_recall")      + get_metric(h2, "val_recall")
-    auc_vals  = get_metric(h1, "auc")             + get_metric(h2, "auc")
-    val_auc   = get_metric(h1, "val_auc")         + get_metric(h2, "val_auc")
+    acc      = get_metric(h1, "accuracy")      + get_metric(h2, "accuracy")
+    val_acc  = get_metric(h1, "val_accuracy")  + get_metric(h2, "val_accuracy")
+    loss     = get_metric(h1, "loss")          + get_metric(h2, "loss")
+    val_loss = get_metric(h1, "val_loss")      + get_metric(h2, "val_loss")
+    prec     = get_metric(h1, "precision")     + get_metric(h2, "precision")
+    val_prec = get_metric(h1, "val_precision") + get_metric(h2, "val_precision")
+    rec      = get_metric(h1, "recall")        + get_metric(h2, "recall")
+    val_rec  = get_metric(h1, "val_recall")    + get_metric(h2, "val_recall")
+    auc_vals = get_metric(h1, "auc")           + get_metric(h2, "auc")
+    val_auc  = get_metric(h1, "val_auc")       + get_metric(h2, "val_auc")
 
     epochs_range = range(1, len(acc) + 1)
     phase1_end   = len(h1.history["accuracy"])
@@ -236,7 +236,7 @@ def plot_training_history(h1, h2):
 
     for idx, (train, val, title) in enumerate(metrics_data):
         ax = axes[idx // 3, idx % 3]
-        ax.plot(epochs_range, train, "b-",  label="Train",      linewidth=2)
+        ax.plot(epochs_range, train, "b-",  label="Train",       linewidth=2)
         ax.plot(epochs_range, val,   "r--", label="Validation",  linewidth=2)
         ax.axvline(x=phase1_end, color="g", linestyle=":", alpha=0.7, label="Fine-tune start")
         ax.set_title(title, fontweight="bold")
@@ -258,11 +258,11 @@ def plot_training_history(h1, h2):
   AUC       : {max(val_auc):.4f}
 
   Training Config:
-  • Backbone  : EfficientNetB0
+  • Backbone    : EfficientNetB0
   • Total Epochs: {len(acc)}
-  • Phase 1 (frozen): {phase1_end} epochs
+  • Phase 1 (frozen)   : {phase1_end} epochs
   • Phase 2 (fine-tune): {len(h2.history['accuracy'])} epochs
-  • Batch Size: {BATCH_SIZE}
+  • Batch Size  : {BATCH_SIZE}
   • Fine-tune LR: {fine_tune_lr:.0e}
     """
     ax.text(
@@ -280,21 +280,19 @@ def plot_training_history(h1, h2):
 plot_training_history(history1, history2)
 
 
-# 8. Sample Predictions 
+# 8. Sample Predictions
 
-def plot_sample_predictions(model, val_gen, n_samples: int = 8):
-    """
-    FIX: bounded loop prevents infinite iteration if val_gen is exhausted.
-    """
-    val_gen.reset()
+def plot_sample_predictions(mdl, gen, n_samples: int = 8):
+    """Bounded loop prevents infinite iteration if gen is exhausted."""
+    gen.reset()
     images, labels = [], []
-    max_batches = int(np.ceil(n_samples / val_gen.batch_size)) + 2
+    max_batches = int(np.ceil(n_samples / gen.batch_size)) + 2
 
     for _ in range(max_batches):
         if len(images) >= n_samples:
             break
         try:
-            batch_img, batch_lbl = next(val_gen)
+            batch_img, batch_lbl = next(gen)
         except StopIteration:
             break
         for i in range(len(batch_img)):
@@ -305,7 +303,7 @@ def plot_sample_predictions(model, val_gen, n_samples: int = 8):
 
     images = np.array(images[:n_samples])
     labels = np.array(labels[:n_samples])
-    preds  = models.predict(images, verbose=0)
+    preds  = mdl.predict(images, verbose=0)
 
     fig, axes = plt.subplots(2, 4, figsize=(16, 8))
     fig.suptitle("TraceFake AI — Sample Test Predictions", fontsize=14, fontweight="bold")
@@ -340,18 +338,12 @@ def plot_sample_predictions(model, val_gen, n_samples: int = 8):
 plot_sample_predictions(model, val_gen)
 
 
-# 9. Final Evaluation 
-from sklearn.metrics import classification_report, confusion_matrix
-import seaborn as sns
-
-
-# FINAL EVALUATION
+# 9. Final Evaluation
 val_gen.reset()
 y_true       = val_gen.classes
-y_pred_proba = models.predict(val_gen, steps=val_steps, verbose=0)
-y_pred       = (y_pred_proba > 0.5).astype(int).flatten()[: len(y_true)]
+y_pred_proba = model.predict(val_gen, steps=val_steps, verbose=0)
+y_pred       = (y_pred_proba > 0.5).astype(int).flatten()[:len(y_true)]
 
-# Summary from training history
 all_val_acc  = get_metric(history1, "val_accuracy")  + get_metric(history2, "val_accuracy")
 all_val_auc  = get_metric(history1, "val_auc")        + get_metric(history2, "val_auc")
 all_val_prec = get_metric(history1, "val_precision")  + get_metric(history2, "val_precision")
@@ -395,25 +387,23 @@ plt.close()
 
 print("✅ Reports generated")
 
-# TRAINING CURVES (SAVE GRAPH)
-history = {}
-
-for k in history1.history.keys():
-    history[k] = history1.history[k] + history2.history[k]
+# Training curves
+combined_history = {}
+for k in history1.history:
+    base_k = k  # use as-is; get_metric handles suffix variants
+    combined_history[k] = history1.history[k] + history2.history.get(k, [])
 
 plt.figure(figsize=(10, 5))
 
-# Accuracy
 plt.subplot(1, 2, 1)
-plt.plot(history["accuracy"], label="Train Accuracy")
-plt.plot(history["val_accuracy"], label="Val Accuracy")
+plt.plot(combined_history.get("accuracy", []),     label="Train Accuracy")
+plt.plot(combined_history.get("val_accuracy", []), label="Val Accuracy")
 plt.title("Accuracy Curve")
 plt.legend()
 
-# Loss
 plt.subplot(1, 2, 2)
-plt.plot(history["loss"], label="Train Loss")
-plt.plot(history["val_loss"], label="Val Loss")
+plt.plot(combined_history.get("loss", []),     label="Train Loss")
+plt.plot(combined_history.get("val_loss", []), label="Val Loss")
 plt.title("Loss Curve")
 plt.legend()
 
