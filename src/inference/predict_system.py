@@ -4,74 +4,92 @@ import logging
 import numpy as np
 import joblib
 import tensorflow as tf
-from tensorflow.keras.preprocessing import image
+from tensorflow.keras.preprocessing import image as keras_image
 from pathlib import Path
 
-#Silence TensorFlow noise 
+# Silence TF noise 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-os.environ["GRPC_VERBOSITY"] = "ERROR"
-os.environ["GLOG_minloglevel"] = "3"
+os.environ["GRPC_VERBOSITY"]        = "ERROR"
+os.environ["GLOG_minloglevel"]      = "3"
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
 logging.getLogger("absl").setLevel(logging.ERROR)
 tf.get_logger().setLevel("ERROR")
 tf.autograph.set_verbosity(0)
 
-# Add src/ to path so "from preprocess.X import Y" works
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Path setup 
+BASE_DIR = Path(__file__).parent
+sys.path.insert(0, str(BASE_DIR))
 
-# FIX 1: models live in src/models/ — __file__ is src/inference/predict_system.py
-#         parent       = src/inference/
-#         parent.parent = src/
-#         + "models"   = src/models/
-MODEL_DIR = Path(__file__).parent.parent / "models"
+try:
+    from config import (
+        MODEL_DIR, DEFAULT_FUSION_WEIGHTS, DEFAULT_FUSION_BIAS,
+        EXIF_FEATURE_COLS,
+    )
+except ImportError:
+    MODEL_DIR             = BASE_DIR / "src" / "models"
+    DEFAULT_FUSION_WEIGHTS = {"cnn": 0.45, "exif": 0.15, "forensic": 0.40}
+    DEFAULT_FUSION_BIAS    = 0.0
+    EXIF_FEATURE_COLS      = [
+        "missing_count", "has_camera_info", "has_software",
+        "software_suspicious", "has_timestamp", "timestamp_consistent",
+        "timestamp_plausible", "timestamp_future",
+        "exif_total_tags", "has_gps", "has_flash", "has_orientation",
+    ]
 
-print(f"[TraceFake] Looking for models in: {MODEL_DIR.absolute()}")
+from exif_extractor import extract as exif_extract, extract_features, build_feature_array
+from forensics import forensic_score
 
-#Load CNN
+print(f"Looking for models in: {MODEL_DIR.absolute()}")
+
+# Load CNN
 cnn_path = MODEL_DIR / "cnn.keras"
 if cnn_path.exists():
     cnn = tf.keras.models.load_model(str(cnn_path))
     print(f"[TraceFake] ✅ CNN loaded from {cnn_path}")
 else:
-    print(f"[TraceFake] ⚠️  CNN not found at {cnn_path} — using neutral fallback")
+    print(f"⚠️  CNN model not found at {cnn_path} — using neutral mock")
     class _MockCNN:
         def predict(self, x, verbose=0):
             return np.array([[0.5]])
     cnn = _MockCNN()
 
-#Load EXIF model 
+# Load EXIF XGBoost ─
 exif_path = MODEL_DIR / "exif_xgb.pkl"
 if exif_path.exists():
     exif_model = joblib.load(str(exif_path))
-    print(f"[TraceFake] ✅ EXIF model loaded from {exif_path}")
+    print(f"✅ Loaded EXIF model from {exif_path}")
 else:
-    print(f"[TraceFake] ⚠️  EXIF model not found at {exif_path} — using neutral fallback")
+    print(f"⚠️  EXIF model not found at {exif_path} — using neutral mock")
     class _MockEXIF:
         def predict_proba(self, x):
-            return np.array([[0.5, 0.5]]) 
+            return np.array([[0.5, 0.5]])
     exif_model = _MockEXIF()
 
-#Load fusion weights
-try:
-    fusion_path = MODEL_DIR / "fusion_weights.pkl"
-    if not fusion_path.exists():
-        raise FileNotFoundError
-    fusion_data = joblib.load(str(fusion_path))
-    FUSION_WEIGHTS = fusion_data["weights"]
-    FUSION_BIAS = fusion_data.get("bias", 0.0)
-    print(f"[TraceFake] ✅ Fusion weights loaded: {FUSION_WEIGHTS}")
-except Exception:
-    FUSION_WEIGHTS = {"cnn": 0.45, "exif": 0.15, "forensic": 0.40}
-    FUSION_BIAS = 0.0
-    print(f"[TraceFake] ⚠️  Using default fusion weights: {FUSION_WEIGHTS}")
-
-
-# CNN PREDICTION
-def img_pred(path: str) -> float:
-    """EfficientNetB0 binary prediction. Returns P(real) in [0, 1]."""
+# Load fusion weights
+fusion_path = MODEL_DIR / "fusion_weights.pkl"
+if fusion_path.exists():
     try:
-        img = image.load_img(path, target_size=(224, 224))
-        arr = image.img_to_array(img) / 255.0
+        fusion_data    = joblib.load(str(fusion_path))
+        FUSION_WEIGHTS = fusion_data["weights"]
+        FUSION_BIAS    = fusion_data.get("bias", 0.0)
+        print(f"✅ Loaded learned fusion weights: {FUSION_WEIGHTS}")
+    except Exception as e:
+        print(f"⚠️  Could not load fusion weights ({e}) — using defaults")
+        FUSION_WEIGHTS = DEFAULT_FUSION_WEIGHTS
+        FUSION_BIAS    = DEFAULT_FUSION_BIAS
+else:
+    FUSION_WEIGHTS = DEFAULT_FUSION_WEIGHTS
+    FUSION_BIAS    = DEFAULT_FUSION_BIAS
+    print(f"⚠️  Using default fusion weights: {FUSION_WEIGHTS}")
+
+
+# CNN Prediction 
+
+def img_pred(path) -> float:
+    """CNN deep-feature prediction. Returns probability in [0, 1]."""
+    try:
+        img = keras_image.load_img(path, target_size=(224, 224))
+        arr = keras_image.img_to_array(img) / 255.0
         arr = np.expand_dims(arr, 0)
         score = float(cnn.predict(arr, verbose=0)[0][0])
         return score
@@ -80,87 +98,102 @@ def img_pred(path: str) -> float:
         return 0.5  
 
 
-# EXIF PREDICTION
-FEATURE_COLS = [
-    "missing_count", "has_camera_info", "has_software",
-    "software_suspicious", "has_timestamp", "timestamp_consistent",
-    "exif_total_tags", "has_gps", "has_flash", "has_orientation",
-]
+
+# EXIF Prediction 
 
 def exif_pred(features: dict) -> float:
-    """XGBoost EXIF metadata prediction. Returns P(real) in [0, 1]."""
+    """
+    XGBoost EXIF metadata prediction.
+    """
     try:
-        arr = np.array([[features.get(f, 0) for f in FEATURE_COLS]])
+        arr = build_feature_array(features)   # shape (1, N), guaranteed order
         if hasattr(exif_model, "predict_proba"):
             return float(exif_model.predict_proba(arr)[0][1])
-        else:
-            return float(exif_model.predict(arr)[0])
+        return float(exif_model.predict(arr)[0])
     except Exception as e:
-        print(f"[TraceFake] EXIF error: {e}")
-        return 0.5  
+        print(f"EXIF prediction error: {e}")
+        return 0.5
 
-# FORENSIC PREDICTION
-def forensic_pred(path: str) -> float:
-    """ELA + noise + JPEG + chromatic fusion. Returns score in [0, 1]."""
+
+# Forensic Prediction
+
+def forensic_pred(path) -> float:
+    """
+    Forensic signal prediction (ELA + Noise + JPEG + Chromatic + FFT).
+    FIX: was 'from preprocess.forensics import forensic_score' — always failed.
+    """
     try:
-        from preprocess.forensics import forensic_score
         return forensic_score(path)
     except Exception as e:
         print(f"[TraceFake] Forensic error: {e}")
         return 0.5   
 
-# FINAL FUSION
-def final_predict(path: str, features: dict = None) -> dict:
-    """
-    Multi-signal fusion.
-    Returns dict with cnn_score, exif_score, forensic_score,
-    final_score, result ('REAL'/'FAKE'), confidence.
-    """
+
+# Final Fusion 
+
+def final_predict(path, features: dict = None) -> dict:
+
+    # CNN 
     cnn_score = img_pred(path)
 
-    # Build EXIF feature vector
+    # EXIF 
+  
     if features is None:
-        try:
-            from preprocess.exif_extractor import extract, extract_features
-            exif_raw = extract(path)
-            features = extract_features(exif_raw)
-        except Exception as e:
-            print(f"[TraceFake] EXIF feature extraction error: {e}")
-            features = {f: 0 for f in FEATURE_COLS}
-            features["missing_count"] = 4
-
-    exif_present = features.get("exif_total_tags", 0) > 0
+        exif_raw = exif_extract(path)
+        features = extract_features(exif_raw)
 
     exif_score = exif_pred(features)
-    forensic   = forensic_pred(path)
 
-    if exif_present:
-        w_cnn, w_exif, w_for = (
-            FUSION_WEIGHTS.get("cnn",      0.45),
-            FUSION_WEIGHTS.get("exif",     0.15),
-            FUSION_WEIGHTS.get("forensic", 0.40),
-        )
+    # Forensics
+    forensic = forensic_pred(path)
+
+    # Weighted fusion
+    final_score = (
+        FUSION_WEIGHTS["cnn"]      * cnn_score  +
+        FUSION_WEIGHTS["exif"]     * exif_score +
+        FUSION_WEIGHTS["forensic"] * forensic   +
+        FUSION_BIAS
+    )
+    final_score = float(max(0.0, min(1.0, final_score)))
+
+    #  Uncertainty band 
+    if 0.40 < final_score < 0.60:
+        result     = "UNCERTAIN"
+        confidence = round(abs(final_score - 0.5) * 2, 4)  # 0 = max uncertainty
+    elif final_score >= 0.60:
+        result     = "REAL"
+        confidence = round(final_score, 4)
     else:
-        w_cnn, w_exif, w_for = 0.55, 0.00, 0.45
-
-    final_score = w_cnn * cnn_score + w_exif * exif_score + w_for * forensic + FUSION_BIAS
-    final_score = float(np.clip(final_score, 0.0, 1.0))
+        result     = "FAKE"
+        confidence = round(1.0 - final_score, 4)
 
     return {
         "cnn_score":      round(cnn_score,   4),
         "exif_score":     round(exif_score,  4),
         "forensic_score": round(forensic,    4),
         "final_score":    round(final_score, 4),
-        "result":         "REAL" if final_score > 0.5 else "FAKE",
-        "confidence":     round(max(final_score, 1.0 - final_score), 4),
-        "exif_present":   exif_present,  
+        "result":         result,
+        "confidence":     confidence,
     }
 
-# BATCH PREDICTION
-def batch_predict(image_paths):
+
+# Batch Prediction 
+
+def batch_predict(image_paths) -> list:
+    """
+    Process multiple images.
+    """
     results = []
     for path in image_paths:
-        result = final_predict(str(path))
-        result["file"] = str(path)
+        try:
+            result          = final_predict(path)
+            result["file"]  = str(path)
+            result["error"] = None
+        except Exception as e:
+            result = {
+                "file":   str(path),
+                "error":  str(e),
+                "result": "ERROR",
+            }
         results.append(result)
     return results

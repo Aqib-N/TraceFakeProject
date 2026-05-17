@@ -23,11 +23,6 @@ data/processed/
 *.png
 
 
-
-# Temp
-temp_ela.jpg
-*.tmp
-
 # IDE
 .vscode/
 .idea/
