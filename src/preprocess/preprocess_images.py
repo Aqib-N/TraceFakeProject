@@ -11,10 +11,8 @@ from datetime import datetime, timedelta
 # SRC_FAKE = Path("/content/drive/MyDrive/fake_image_processed")
 
 # Kaggle:
-# SRC_REAL = Path("/kaggle/input/datasets/aqibnawaz7/real-vs-fake-image-dataset/real_image_processed/real_image_processed")
-# SRC_FAKE = Path("/kaggle/input/datasets/aqibnawaz7/real-vs-fake-image-dataset/fake_image_processed/fake_image_processed")
-SRC_REAL = Path("/kaggle/input/datasets/hassnainzaidi/human-faces-data-set/Human Faces/Real Images")
-SRC_FAKE = Path("/kaggle/input/datasets/hassnainzaidi/human-faces-data-set/Human Faces/AI-Generated Images")
+SRC_REAL = Path("/kaggle/input/datasets/aqibnawaz7/real-vs-fake-image-dataset/real_image_processed/real_image_processed")
+SRC_FAKE = Path("/kaggle/input/datasets/aqibnawaz7/real-vs-fake-image-dataset/fake_image_processed/fake_image_processed")
 
 # Google Colab (uncomment to use) 
 # SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")
