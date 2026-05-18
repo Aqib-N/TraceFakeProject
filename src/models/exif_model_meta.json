@@ -1,0 +1,29 @@
+{
+  "feature_cols": [
+    "missing_count",
+    "has_camera_info",
+    "has_software",
+    "software_suspicious",
+    "has_timestamp",
+    "timestamp_consistent",
+    "timestamp_plausible",
+    "timestamp_future",
+    "exif_total_tags",
+    "has_gps",
+    "has_flash",
+    "has_orientation"
+  ],
+  "best_params": {
+    "subsample": 0.9,
+    "reg_lambda": 1,
+    "reg_alpha": 1.0,
+    "n_estimators": 100,
+    "min_child_weight": 1,
+    "max_depth": 4,
+    "learning_rate": 0.1,
+    "colsample_bytree": 1.0
+  },
+  "best_cv_auc": 1.0,
+  "test_auc": 1.0,
+  "n_features": 12
+}
