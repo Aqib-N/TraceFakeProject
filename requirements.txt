@@ -29,4 +29,6 @@ python-multipart
 # Data
 kagglehub
 datasets
-
+# Downloader
+requests
+tqdm

@@ -2,9 +2,14 @@ import random
 import hashlib
 import piexif
 import pandas as pd
+import requests
+import time
+
+from io import BytesIO
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 from datetime import datetime, timedelta
+
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -12,9 +17,52 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 # SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")
 # SRC_FAKE = Path("/content/drive/MyDrive/fake_image_processed")
 
-# Kaggle:
-SRC_REAL = Path("/kaggle/input/datasets/aqibnawaz7/real-vs-fake-image-dataset/real_image_processed/real_image_processed")
-SRC_FAKE = Path("/kaggle/input/datasets/aqibnawaz7/real-vs-fake-image-dataset/fake_image_processed/fake_image_processed")
+# Kaggle REAL dataset
+SRC_REAL = Path("/kaggle/input/datasets/arnaud58/flickrfaceshq-dataset-ffhq")
+
+# Download FAKE images from ThisPersonDoesNotExist
+SRC_FAKE = Path("/kaggle/working/fake_image_processed")
+SRC_FAKE.mkdir(parents=True, exist_ok=True)
+
+TOTAL_FAKE_IMAGES = 25000
+
+headers = {
+    "User-Agent": "Mozilla/5.0"
+}
+
+print("Downloading fake AI faces...")
+
+for i in range(TOTAL_FAKE_IMAGES):
+
+    save_path = SRC_FAKE / f"fake_face_{i:05d}.jpg"
+
+    # Skip existing files
+    if save_path.exists():
+        continue
+
+    try:
+        response = requests.get(
+            "https://thispersondoesnotexist.com/image",
+            headers=headers,
+            timeout=10
+        )
+
+        if response.status_code != 200:
+            continue
+
+        img = Image.open(BytesIO(response.content)).convert("RGB")
+
+        img.save(save_path, "JPEG", quality=95)
+
+        if i % 100 == 0:
+            print(f"Downloaded {i} fake images")
+
+        time.sleep(0.2)
+
+    except Exception as e:
+        print(f"Error {i}: {e}")
+
+print("Fake dataset download complete.")
 
 # Google Colab (uncomment to use)
 # SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")
