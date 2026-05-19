@@ -14,15 +14,6 @@ venv/
 .venv/
 .env
 
-# Data
-data/raw/
-data/processed/
-*.csv
-*.jpg
-*.jpeg
-*.png
-
-
 # IDE
 .vscode/
 .idea/

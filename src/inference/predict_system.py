@@ -37,8 +37,12 @@ except ImportError:
         "exif_total_tags", "has_gps", "has_flash", "has_orientation",
     ]
 
-from exif_extractor import extract as exif_extract, extract_features, build_feature_array
-from forensics import forensic_score
+from src.preprocess.exif_extractor import (
+    extract as exif_extract,
+    extract_features,
+    build_feature_array,
+)
+from src.preprocess.forensics import forensic_score
 
 print(f"Looking for models in: {MODEL_DIR.absolute()}")
 
