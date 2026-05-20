@@ -7,7 +7,7 @@ from pathlib import Path
 from PIL import Image
 from PIL.ExifTags import TAGS
 
-# Path setup 
+# Path setup
 BASE_DIR = Path(__file__).parent
 sys.path.append(str(BASE_DIR))
 sys.path.append(str(BASE_DIR / "src"))
@@ -15,9 +15,10 @@ sys.path.append(str(BASE_DIR / "src"))
 Path("reports").mkdir(exist_ok=True)
 Path("data/processed").mkdir(parents=True, exist_ok=True)
 
-from src.inference.predict_system import final_predict
+# FIX 1: predict_system lives at root, not src/inference/
+# Old: from src.inference.predict_system import final_predict
+from predict_system import final_predict
 
-# Config 
 try:
     from config import MAX_FILE_SIZE_MB, ALLOWED_EXTENSIONS, ALLOWED_PIL_FORMATS
 except ImportError:
@@ -26,14 +27,13 @@ except ImportError:
     ALLOWED_PIL_FORMATS = {"JPEG", "PNG"}
 
 
-# File Validation 
+# ── File Validation ───────────────────────────────────────────────────────────
 
 def _safe_filename(name: str) -> str:
     return Path(name).name
 
 
 def validate_upload(uploaded_file):
-    """Three-layer: size → extension → PIL format verification."""
     if uploaded_file.size > MAX_FILE_SIZE_MB * 1024 * 1024:
         return False, f"File too large. Max: {MAX_FILE_SIZE_MB} MB"
 
@@ -56,7 +56,7 @@ def validate_upload(uploaded_file):
     return True, "Valid"
 
 
-# Page Config 
+# ── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="TraceFake AI",
     page_icon="🔍",
@@ -64,18 +64,16 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# CSS 
+# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
 
-/* ── Font smoothing (fixes blurry text) ── */
 *, *::before, *::after {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
 }
-
 html, body, [class*="css"] {
     font-family: 'DM Sans', sans-serif;
     background-color: #080C14;
@@ -84,23 +82,6 @@ html, body, [class*="css"] {
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding-top: 2rem; padding-bottom: 2rem; }
 
-/* ── Card columns 
-   Use :has() to style only columns that contain actual content.
-   Empty spacer columns (in [1,2,1] layouts) have no child divs → no style.
-   This replaces the broken split <div class='card'> / </div> pattern.
- */
-
-/* Middle column of 3-column layouts (steps 1, 2, 4) */
-[data-testid="stHorizontalBlock"]:has(
-    > [data-testid="stColumn"]:nth-child(3)
-) > [data-testid="stColumn"]:nth-child(2) {
-    background: rgba(255,255,255,0.03);
-    border-radius: 16px;
-    border: 1px solid rgba(0,212,232,0.1);
-    padding: 20px 24px;
-}
-
-/* ── Explicit .card class for step-3 pure-HTML cards ── */
 .card {
     background: rgba(255,255,255,0.03);
     border-radius: 16px;
@@ -108,29 +89,13 @@ html, body, [class*="css"] {
     border: 1px solid rgba(0,212,232,0.1);
     margin-bottom: 4px;
 }
-
-/* ── Header ── */
 .tf-header { text-align: center; padding: 10px 0 18px; }
-.tf-logo {
-    font-family: 'Space Mono', monospace;
-    font-size: 30px; color: #00D4E8;
-    letter-spacing: 3px; font-weight: 700;
-}
+.tf-logo { font-family: 'Space Mono', monospace; font-size: 30px; color: #00D4E8; letter-spacing: 3px; font-weight: 700; }
 .tf-logo span { color: #FF4D6D; }
-.tf-tagline {
-    font-size: 12px; color: #3A6070;
-    letter-spacing: 2px; text-transform: uppercase; margin-top: 4px;
-}
+.tf-tagline { font-size: 12px; color: #3A6070; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
 
-/* ── Stepper ── */
-.stepper-wrap {
-    display: flex; justify-content: center;
-    align-items: center; gap: 0; margin-bottom: 28px;
-}
-.step {
-    display: flex; align-items: center; gap: 7px;
-    font-family: 'Space Mono', monospace; font-size: 11px; color: #2A4050;
-}
+.stepper-wrap { display: flex; justify-content: center; align-items: center; gap: 0; margin-bottom: 28px; }
+.step { display: flex; align-items: center; gap: 7px; font-family: 'Space Mono', monospace; font-size: 11px; color: #2A4050; }
 .step.active { color: #00D4E8; }
 .step.done   { color: #00C98A; }
 .step-num { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #1A3040; display: flex; align-items: center; justify-content: center; font-size: 10px; background: #080C14; }
@@ -139,73 +104,38 @@ html, body, [class*="css"] {
 .step-line { width: 36px; height: 1px; background: #1A3040; margin: 0 6px; }
 .step-line.done { background: rgba(0,201,138,0.4); }
 
-/* ── Scan items (Step 2) ── */
-.scan-item {
-    display: flex; align-items: center; gap: 12px;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 8px; padding: 10px 14px;
-    margin-bottom: 8px; font-size: 12px;
-}
+.scan-item { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 12px; }
 .scan-label { flex: 1; color: #6A8A9A; }
 .scan-done  { color: #00C98A; font-family: 'Space Mono', monospace; font-size: 11px; }
 .scan-wait  { color: #FFAA32; font-family: 'Space Mono', monospace; font-size: 11px; }
 
-/* ── Verdicts ── */
 .verdict-fake      { font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700; color: #FF4D6D; text-align: center; padding: 18px 0 10px; letter-spacing: 1px; }
 .verdict-real      { font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700; color: #00C98A; text-align: center; padding: 18px 0 10px; letter-spacing: 1px; }
 .verdict-uncertain { font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700; color: #FFAA32; text-align: center; padding: 18px 0 10px; letter-spacing: 1px; }
 .verdict-sub { text-align: center; font-size: 12px; color: #4A7080; margin-bottom: 18px; letter-spacing: 1px; }
 
-/* ── Score cards ── */
-.score-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px; padding: 14px; text-align: center;
-}
+.score-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 14px; text-align: center; }
 .score-label { font-size: 11px; color: #4A7080; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
 .score-val   { font-family: 'Space Mono', monospace; font-size: 22px; color: #00D4E8; }
 
-/* ── EXIF rows ── */
-.exif-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
-    font-size: 12px;
-}
+.exif-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
 .exif-row:last-child { border-bottom: none; }
 .exif-key  { color: #4A7080; }
 .exif-val  { color: #9ABAC8; font-family: 'Space Mono', monospace; font-size: 11px; }
 .exif-miss { color: rgba(255,77,109,0.4); font-family: 'Space Mono', monospace; font-size: 11px; }
 
-/* ── Section title ── */
-.sec-title {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px; color: #00D4E8;
-    letter-spacing: 2px; text-transform: uppercase;
-    margin-bottom: 12px;
-    border-bottom: 1px solid rgba(0,212,232,0.1);
-    padding-bottom: 6px;
-}
+.sec-title { font-family: 'Space Mono', monospace; font-size: 11px; color: #00D4E8; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; border-bottom: 1px solid rgba(0,212,232,0.1); padding-bottom: 6px; }
 
-/* ── Confidence bar ── */
 .conf-bar-bg   { background: rgba(255,255,255,0.05); border-radius: 6px; height: 8px; overflow: hidden; }
 .conf-bar-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; }
 
-/* ── History rows ── */
-.hist-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 12px; border-radius: 8px;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.04);
-    margin-bottom: 6px; font-size: 12px;
-}
+.hist-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); margin-bottom: 6px; font-size: 12px; }
 .hist-date      { color: #4A7080; }
 .hist-real      { color: #00C98A; font-family: 'Space Mono', monospace; font-size: 11px; }
 .hist-fake      { color: #FF4D6D; font-family: 'Space Mono', monospace; font-size: 11px; }
 .hist-uncertain { color: #FFAA32; font-family: 'Space Mono', monospace; font-size: 11px; }
 .hist-score     { color: #6A8A9A; font-family: 'Space Mono', monospace; font-size: 11px; }
 
-/* ── Buttons ── */
 div.stButton > button {
     background: linear-gradient(135deg, #00A8BE, #00D4E8) !important;
     color: #080C14 !important;
@@ -226,32 +156,15 @@ div.stDownloadButton > button {
     border-radius: 8px !important; width: 100% !important;
 }
 div[data-testid="stProgress"] > div > div > div { background-color: #00D4E8 !important; }
-
-/* ── File uploader — style Streamlit's native component ── */
-[data-testid="stFileUploaderDropzone"] {
-    background: rgba(255,255,255,0.02) !important;
-    border: 1.5px dashed rgba(0,212,232,0.3) !important;
-    border-radius: 12px !important;
-}
-[data-testid="stFileUploaderDropzoneInstructions"] > div > span {
-    color: #4A7080 !important;
-    font-size: 13px !important;
-}
-[data-testid="stFileUploaderDropzoneInstructions"] > div > small {
-    color: #3A6070 !important;
-}
-[data-testid="stFileUploader"] section > button {
-    background: rgba(0,212,232,0.1) !important;
-    border: 1px solid rgba(0,212,232,0.3) !important;
-    color: #00D4E8 !important;
-    border-radius: 6px !important;
-    font-family: 'Space Mono', monospace !important;
-    font-size: 11px !important;
-}
+[data-testid="stFileUploaderDropzone"] { background: rgba(255,255,255,0.02) !important; border: 1.5px dashed rgba(0,212,232,0.3) !important; border-radius: 12px !important; }
+[data-testid="stFileUploaderDropzoneInstructions"] > div > span { color: #4A7080 !important; font-size: 13px !important; }
+[data-testid="stFileUploaderDropzoneInstructions"] > div > small { color: #3A6070 !important; }
+[data-testid="stFileUploader"] section > button { background: rgba(0,212,232,0.1) !important; border: 1px solid rgba(0,212,232,0.3) !important; color: #00D4E8 !important; border-radius: 6px !important; font-family: 'Space Mono', monospace !important; font-size: 11px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# Session State 
+
+# ── Session State (FIX 2: deduplicated — was initialised twice) ───────────────
 for key, default in [
     ("step", 1), ("result", None), ("exif_data", {}),
     ("img_info", {}), ("history", []), ("tmp_path", None),
@@ -259,17 +172,8 @@ for key, default in [
     if key not in st.session_state:
         st.session_state[key] = default
 
-# Session State 
-for key, default in [
-    ("step", 1), ("result", None), ("exif_data", {}),
-    ("img_info", {}), ("history", []), ("tmp_path", None),
-]:
-    if key not in st.session_state:
-        st.session_state[key] = default
 
-
-# Helpers 
-
+# ── Helpers ───────────────────────────────────────────────────────────────────
 def extract_exif(image_path):
     exif_info = {}
     try:
@@ -302,14 +206,12 @@ def build_report(result, exif_data, img_info):
         "",
         "         TRACEFAKE AI — FORENSIC REPORT     ",
         "",
-        "",
         f"VERDICT       : {result['result']}",
         f"CONFIDENCE    : {result['confidence']:.2%}",
         f"FINAL SCORE   : {result['final_score']:.4f}",
         f"CNN SCORE     : {result['cnn_score']:.4f}",
         f"EXIF SCORE    : {result['exif_score']:.4f}",
         f"FORENSIC SCORE: {result['forensic_score']:.4f}",
-        f"EXIF PRESENT  : {'Yes' if result.get('exif_present') else 'No (social media stripped)'}",
         "",
         "---- IMAGE INFO ----",
     ]
@@ -321,16 +223,11 @@ def build_report(result, exif_data, img_info):
             lines.append(f"{k:<14}: {v}")
     else:
         lines.append("No EXIF metadata found.")
-    lines += [
-        "",
-        "",
-        "  Generated by TraceFake AI Forensic System ",
-        "",
-    ]
+    lines += ["", "  Generated by TraceFake AI Forensic System ", ""]
     return "\n".join(lines)
 
 
-# Header 
+# ── Header ────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="tf-header">
     <div class="tf-logo">TRACE<span>FAKE</span> AI</div>
@@ -338,7 +235,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Stepper 
+# ── Stepper ───────────────────────────────────────────────────────────────────
 step = st.session_state.step
 
 def step_class(n):
@@ -362,12 +259,10 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 
-# Step 1 — Upload
-
+# ── Step 1 — Upload ───────────────────────────────────────────────────────────
 if step == 1:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-
         st.markdown("<div class='sec-title'>◈ Upload Image</div>", unsafe_allow_html=True)
 
         uploaded_file = st.file_uploader(
@@ -401,7 +296,7 @@ if step == 1:
                     st.rerun()
 
 
-# Step 2 — Analyzing
+# ── Step 2 — Analyzing ────────────────────────────────────────────────────────
 elif step == 2:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -428,24 +323,42 @@ elif step == 2:
             time.sleep(0.05)
             bar.progress(pct)
 
-        result = final_predict(st.session_state.tmp_path)
+        # FIX 3: wrap final_predict in try/except so a model error
+        # doesn't crash the app — shows a user-friendly error instead.
+        try:
+            result = final_predict(st.session_state.tmp_path)
+        except Exception as e:
+            st.error(f"Analysis failed: {e}")
+            st.session_state.step = 1
+            st.rerun()
+
         st.session_state.result = result
+
+        # FIX 4: history entry now includes timestamp for display in Step 4
         st.session_state.history.append({
             "verdict":    result["result"],
             "score":      result["final_score"],
             "confidence": result["confidence"],
             "file":       Path(st.session_state.tmp_path).name,
+            "time":       time.strftime("%H:%M:%S"),   # FIX: was missing
         })
 
         st.session_state.step = 3
         st.rerun()
 
 
-# Step 3 — Results
+# ── Step 3 — Results ──────────────────────────────────────────────────────────
 elif step == 3:
     result    = st.session_state.result
     exif_data = st.session_state.exif_data
     img_info  = st.session_state.img_info
+
+    # FIX 5: guard against result being None (e.g. user navigates directly to step 3)
+    if result is None:
+        st.warning("No analysis result found. Please upload an image first.")
+        st.session_state.step = 1
+        st.rerun()
+
     verdict   = result["result"]
     conf      = result["confidence"]
 
@@ -455,7 +368,7 @@ elif step == 3:
     elif verdict == "REAL":
         bar_color = "#00C98A"
         st.markdown("<div class='verdict-real'>✓ REAL IMAGE VERIFIED</div>", unsafe_allow_html=True)
-    else:  # UNCERTAIN
+    else:
         bar_color = "#FFAA32"
         st.markdown("<div class='verdict-uncertain'>? RESULT UNCERTAIN</div>", unsafe_allow_html=True)
         st.markdown(
@@ -469,7 +382,6 @@ elif step == 3:
         unsafe_allow_html=True,
     )
 
-    # Score cards (pure HTML, self-contained per column) 
     c1, c2, c3, c4 = st.columns(4)
     for col, (label, val) in zip(
         [c1, c2, c3, c4],
@@ -488,8 +400,6 @@ elif step == 3:
 
     st.markdown("<br>", unsafe_allow_html=True)
     left, right = st.columns(2)
-
-    # Left card: EXIF Metadata 
 
     with left:
         exif_fields = {
@@ -516,19 +426,16 @@ elif step == 3:
             if suspicious else
             '<span style="color:#00C98A">✓ Normal</span>'
         )
-
         st.markdown(f"""
         <div class='card'>
             <div class='sec-title'>◈ EXIF Metadata</div>
             {rows_html}
             <div style='margin-top:12px; font-size:11px; color:#3A6070;'>
-                {exif_count} of {len(exif_fields)} fields present
-                &nbsp;&nbsp;{status_badge}
+                {exif_count} of {len(exif_fields)} fields present &nbsp;&nbsp;{status_badge}
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-    # Right card: Image Info 
     with right:
         pct = int(conf * 100)
         info_rows_html = "".join(
@@ -544,7 +451,6 @@ elif step == 3:
                 ("EXIF Fields",  f"{len(exif_data)} fields"),
             ]
         )
-
         st.markdown(f"""
         <div class='card'>
             <div class='sec-title'>◈ Image Info</div>
@@ -554,8 +460,7 @@ elif step == 3:
                     CONFIDENCE — {pct}%
                 </div>
                 <div class='conf-bar-bg'>
-                    <div class='conf-bar-fill'
-                         style='width:{pct}%; background:{bar_color};'></div>
+                    <div class='conf-bar-fill' style='width:{pct}%; background:{bar_color};'></div>
                 </div>
             </div>
         </div>
@@ -578,8 +483,13 @@ elif step == 3:
             st.rerun()
     with btn3:
         if st.button("↺  ANALYZE ANOTHER"):
-            if st.session_state.tmp_path and os.path.exists(st.session_state.tmp_path):
-                os.unlink(st.session_state.tmp_path)
+            # FIX 6: clean up temp file safely before resetting state
+            tmp = st.session_state.get("tmp_path")
+            if tmp and os.path.exists(tmp):
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
             for key, default in [
                 ("step", 1), ("result", None), ("exif_data", {}),
                 ("img_info", {}), ("tmp_path", None),
@@ -588,7 +498,7 @@ elif step == 3:
             st.rerun()
 
 
-# Step 4 — History
+# ── Step 4 — History ──────────────────────────────────────────────────────────
 elif step == 4:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -606,9 +516,15 @@ elif step == 4:
                 vclass = ("hist-fake" if v == "FAKE"
                           else "hist-uncertain" if v == "UNCERTAIN"
                           else "hist-real")
+                # FIX 7: show timestamp in history (was missing, entry had 'file' truncated to 20 chars
+                # but 'time' key was never stored — now it is, from Fix 4 above)
+                ts = entry.get("time", "")
                 st.markdown(
                     f"<div class='hist-row'>"
-                    f"<span class='hist-date'>#{len(history) - i + 1} — {entry.get('file','')[:20]}</span>"
+                    f"<span class='hist-date'>#{len(history) - i + 1}"
+                    f"{' · ' + ts if ts else ''}</span>"
+                    f"<span class='hist-date' style='font-size:10px; max-width:120px; overflow:hidden; text-overflow:ellipsis;'>"
+                    f"{entry.get('file','')[:22]}</span>"
                     f"<span class='{vclass}'>{v}</span>"
                     f"<span class='hist-score'>Conf: {entry['confidence']:.1%}</span>"
                     f"</div>",
@@ -616,6 +532,13 @@ elif step == 4:
                 )
 
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("◀  BACK TO RESULTS"):
-            st.session_state.step = 3
-            st.rerun()
+        # FIX 8: "BACK TO RESULTS" is only useful if a result exists;
+        # otherwise go back to upload.
+        if st.session_state.result is not None:
+            if st.button("◀  BACK TO RESULTS"):
+                st.session_state.step = 3
+                st.rerun()
+        else:
+            if st.button("◀  NEW ANALYSIS"):
+                st.session_state.step = 1
+                st.rerun()

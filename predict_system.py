@@ -27,7 +27,7 @@ try:
         EXIF_FEATURE_COLS,
     )
 except ImportError:
-    MODEL_DIR             = BASE_DIR / "src" / "models"
+    MODEL_DIR = BASE_DIR / "src" / "models"
     DEFAULT_FUSION_WEIGHTS = {"cnn": 0.45, "exif": 0.15, "forensic": 0.40}
     DEFAULT_FUSION_BIAS    = 0.0
     EXIF_FEATURE_COLS      = [
