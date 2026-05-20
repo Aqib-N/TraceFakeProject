@@ -109,9 +109,18 @@ def img_pred(path) -> float:
 def exif_pred(features: dict) -> float:
     """
     XGBoost EXIF metadata prediction.
+    FIX: load feature list from exif_model_meta.json so inference columns
+    always match the trained model (handles leaky-feature removal).
     """
     try:
-        arr = build_feature_array(features)   # shape (1, N), guaranteed order
+        import json as _json
+        meta_path = MODEL_DIR / "exif_model_meta.json"
+        if meta_path.exists():
+            _meta = _json.loads(meta_path.read_text())
+            _cols = _meta.get("feature_cols", EXIF_FEATURE_COLS)
+            arr = np.array([[features.get(c, 0) for c in _cols]])
+        else:
+            arr = build_feature_array(features)   # fallback
         if hasattr(exif_model, "predict_proba"):
             return float(exif_model.predict_proba(arr)[0][1])
         return float(exif_model.predict(arr)[0])

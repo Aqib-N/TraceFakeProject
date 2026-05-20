@@ -2,34 +2,24 @@ import random
 import hashlib
 import piexif
 import pandas as pd
-import requests
-import time
 
-from io import BytesIO
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 from datetime import datetime, timedelta
 
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # FIX: was parents[2]
 
-# Google Colab / Drive:
-# SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")
-# SRC_FAKE = Path("/content/drive/MyDrive/fake_image_processed")
-
-# Kaggle REAL dataset
+# ── Source paths (edit for your environment) ──────────────────────────────────
+# Kaggle:
 SRC_REAL = Path("/kaggle/input/datasets/arnaud58/flickrfaceshq-dataset-ffhq")
-
-# Download FAKE images from ThisPersonDoesNotExist
 SRC_FAKE = Path("/kaggle/input/datasets/xhlulu/140k-real-and-fake-faces/real_vs_fake/real-vs-fake/train/fake")
 
-
-# Google Colab (uncomment to use)
+# Google Colab (uncomment):
 # SRC_REAL = Path("/content/drive/MyDrive/real_image_processed")
 # SRC_FAKE = Path("/content/drive/MyDrive/fake_image_processed")
 
-
-# OUTPUT PATHS
+# ── Output paths ──────────────────────────────────────────────────────────────
 OUT_REAL = Path("data/processed/real")
 OUT_FAKE = Path("data/processed/fake")
 OUT_REAL.mkdir(parents=True, exist_ok=True)
@@ -37,11 +27,14 @@ OUT_FAKE.mkdir(parents=True, exist_ok=True)
 
 IMG_SIZE   = (224, 224)
 MAX_IMAGES = 21300
-NUM_WORKERS = 4
+
+# ── EXIF strategy ─────────────────────────────────────────────────────────────
+# "strip"  → remove all EXIF from both classes (safest, no leakage)
+# "inject" → inject realistic camera EXIF into fake images (harder task)
+EXIF_STRATEGY = "strip"
 
 
-# Camera & software lists
-
+# ── Camera lists ──────────────────────────────────────────────────────────────
 REAL_CAMERAS = [
     (b'Canon',      b'EOS R5'),         (b'Canon',      b'EOS R6 Mark II'),
     (b'Canon',      b'EOS R8'),         (b'Canon',      b'EOS R50'),
@@ -79,24 +72,8 @@ REAL_CAMERAS = [
     (b'Vivo',       b'X100 Pro'),       (b'Asus',       b'Zenfone 10'),
 ]
 
-FAKE_CAMERAS = [
-    (b'Midjourney',    b'v6.1'),
-    (b'Midjourney',    b'v6'),
-    (b'Midjourney',    b'v5.2'),
-    (b'OpenAI',        b'DALL-E 3'),
-    (b'OpenAI',        b'DALL-E 2'),
-    (b'Stability AI',  b'Stable Diffusion 3.5'),
-    (b'Stability AI',  b'Stable Diffusion XL'),
-    (b'Google',        b'Imagen 2'),
-    (b'Meta',          b'Imagine'),
-    (b'Adobe',         b'Firefly 2'),
-    (b'Canva',         b'AI Generator'),
-    (b'DeepFaceLab',   b'3.0.1'),
-    (b'Roop',          b'Face Swapper'),
-    (b'StyleGAN',      b'StyleGAN3'),
-    (b'Unknown',       b'AI Generated'),
-]
-
+# FIX: removed GIMP — it's in SUSPICIOUS_SOFTWARE_TERMS in config.py,
+# so real images labelled with GIMP software would be flagged as fake signal.
 REAL_SOFTWARE = [
     b'Adobe Photoshop 2025',
     b'Adobe Photoshop 2024',
@@ -108,55 +85,21 @@ REAL_SOFTWARE = [
     b'Luminar Neo 1.20',
     b'Affinity Photo 2.5',
     b'Darktable 4.8',
-    b'GIMP 2.10.38',
-    b'GIMP 3.0',
     b'Snapseed 2.0',
     b'Lightroom Mobile 9.0',
-]
-
-FAKE_SOFTWARE = [
-    b'DeepFaceLab 3.0',
-    b'Roop Face Swapper v1.3',
-    b'Midjourney AI v6.1',
-    b'DALL-E 3 Generator',
-    b'Stable Diffusion 3.5',
-    b'Adobe Firefly 2',
-    b'StyleGAN3 Generator',
-    b'AI Generated Content',
-    b'Deepfake Creator Pro',
-    b'Face Generator AI',
-]
-
-SUSPICIOUS_SOFTWARE_KEYWORDS = [
-    'deepfake', 'deepface', 'faceswap', 'roop', 'midjourney',
-    'dall-e', 'dalle', 'stable diffusion', 'stylegan', 'gan',
-    'firefly', 'imagen', 'synthetic', 'generated', 'ai',
-    'swapper', 'creator', 'generator', 'runway', 'pika',
-    'leonardo',
 ]
 
 SMARTPHONE_MAKES = {b'Apple', b'Samsung', b'Google', b'Xiaomi',
                     b'OnePlus', b'Huawei', b'Nothing', b'Vivo', b'Asus'}
 
 
-# Helpers
-
-def is_suspicious_software(software_name) -> bool:
-    if not software_name:
-        return False
-    if isinstance(software_name, bytes):
-        name_lower = software_name.decode('utf-8', errors='ignore').lower()
-    else:
-        name_lower = str(software_name).lower()
-    return any(kw in name_lower for kw in SUSPICIOUS_SOFTWARE_KEYWORDS)
-
-
+# ── Helpers ───────────────────────────────────────────────────────────────────
 def is_plausible_timestamp(dt_string: str) -> bool:
     if not dt_string:
         return False
     for fmt in ("%Y:%m:%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
         try:
-            dt = datetime.strptime(dt_string.strip(), fmt)
+            dt  = datetime.strptime(dt_string.strip(), fmt)
             now = datetime.now()
             return 1990 < dt.year <= now.year and dt <= now
         except ValueError:
@@ -165,7 +108,6 @@ def is_plausible_timestamp(dt_string: str) -> bool:
 
 
 def _safe_ifd_len(ifd_value) -> int:
-    """Return len() of an IFD dict, returning 0 if it is None or not a dict."""
     if ifd_value is None:
         return 0
     try:
@@ -174,91 +116,83 @@ def _safe_ifd_len(ifd_value) -> int:
         return 0
 
 
-# EXIF generation
-
-def generate_realistic_exif(is_fake: bool, has_original_exif: bool = False):
-    """Generate realistic EXIF bytes with modern device patterns."""
-
+# ── EXIF generation ───────────────────────────────────────────────────────────
+def generate_realistic_exif(has_original_exif: bool = False):
+    """
+    Generate realistic camera EXIF (real-camera data only — no fake keywords).
+    Used for BOTH real and fake images when EXIF_STRATEGY == "inject",
+    so the EXIF model cannot cheat by detecting generator software names.
+    """
     if has_original_exif and random.random() >= 0.3:
-        return None  # keep original EXIF
+        return None  # keep original EXIF 70% of the time
 
-    now = datetime.now()
+    now         = datetime.now()
     random_days = random.randint(-730, 0)
-    ts = (now + timedelta(days=random_days)).strftime("%Y:%m:%d %H:%M:%S").encode()
+    ts          = (now + timedelta(days=random_days)).strftime("%Y:%m:%d %H:%M:%S").encode()
 
-    if is_fake:
-        make, model = random.choice(FAKE_CAMERAS)
-        software    = random.choice(FAKE_SOFTWARE)
-        exif_dict = {
-            '0th': {
-                piexif.ImageIFD.Make:      make,
-                piexif.ImageIFD.Model:     model,
-                piexif.ImageIFD.Software:  software,
-                piexif.ImageIFD.DateTime:  ts,
-                piexif.ImageIFD.Artist:    b'AI Generated' if random.random() < 0.8 else b'Unknown',
-                piexif.ImageIFD.Copyright: b'Synthetic Content' if random.random() < 0.7 else b'',
-            },
-            'Exif': {
-                piexif.ExifIFD.DateTimeOriginal:  ts,
-                piexif.ExifIFD.DateTimeDigitized: ts,
-                piexif.ExifIFD.ExposureTime:      (random.choice([1, 10, 100, 500, 1000]),
-                                                   random.choice([50, 100, 500, 1000, 2000])),
-                piexif.ExifIFD.FNumber:           (random.choice([1, 14, 2, 28, 4, 56, 8]), 10),
-                piexif.ExifIFD.ISOSpeedRatings:   random.choice([100, 200, 400, 800, 1600, 3200, 6400]),
-                piexif.ExifIFD.FocalLength:       (random.choice([24, 35, 50, 85]), 10),
-            },
-            'GPS': {},
-        }
+    make, model = random.choice(REAL_CAMERAS)
+    software    = random.choice(REAL_SOFTWARE)
+
+    if make in SMARTPHONE_MAKES:
+        exposure     = (1, random.choice([50, 60, 100, 120, 200, 500]))
+        fnumber      = (random.choice([15, 16, 17, 18, 19, 20, 22]), 10)
+        iso          = random.choice([20, 25, 32, 40, 50, 64, 80, 100])
+        focal_length = random.choice([24, 26, 28, 35])
     else:
-        make, model = random.choice(REAL_CAMERAS)
-        software    = random.choice(REAL_SOFTWARE)
+        exposure     = (1, random.choice([100, 125, 160, 200, 250, 320, 400, 500]))
+        fnumber      = (random.choice([14, 18, 20, 28, 40, 56, 80, 110, 160]), 10)
+        iso          = random.choice([100, 125, 160, 200, 250, 320, 400, 500, 640, 800])
+        focal_length = random.choice([24, 35, 50, 70, 85, 105, 135, 200])
 
-        if make in SMARTPHONE_MAKES:
-            exposure     = (1, random.choice([50, 60, 100, 120, 200, 500]))
-            fnumber      = (random.choice([15, 16, 17, 18, 19, 20, 22]), 10)
-            iso          = random.choice([20, 25, 32, 40, 50, 64, 80, 100])
-            focal_length = random.choice([24, 26, 28, 35])
-        else:
-            exposure     = (1, random.choice([100, 125, 160, 200, 250, 320, 400, 500]))
-            fnumber      = (random.choice([14, 18, 2, 28, 4, 56, 8, 11, 16]), 10)
-            iso          = random.choice([100, 125, 160, 200, 250, 320, 400, 500, 640, 800])
-            focal_length = random.choice([24, 35, 50, 70, 85, 105, 135, 200])
+    exif_dict = {
+        '0th': {
+            piexif.ImageIFD.Make:           make,
+            piexif.ImageIFD.Model:          model,
+            piexif.ImageIFD.Software:       software,
+            piexif.ImageIFD.DateTime:       ts,
+            piexif.ImageIFD.Artist:         random.choice(
+                [b'Professional Photographer', b'Content Creator', b'']
+            ),
+            piexif.ImageIFD.Copyright:      random.choice(
+                [b'All Rights Reserved', b'Creative Commons', b'']
+            ),
+            piexif.ImageIFD.XResolution:    (72, 1),
+            piexif.ImageIFD.YResolution:    (72, 1),
+            piexif.ImageIFD.ResolutionUnit: 2,
+            piexif.ImageIFD.Orientation:    random.choice([1, 3, 6, 8]),
+        },
+        'Exif': {
+            piexif.ExifIFD.DateTimeOriginal:  ts,
+            piexif.ExifIFD.DateTimeDigitized: ts,
+            piexif.ExifIFD.ExposureTime:      exposure,
+            piexif.ExifIFD.FNumber:           fnumber,
+            piexif.ExifIFD.ISOSpeedRatings:   iso,
+            piexif.ExifIFD.FocalLength:       (focal_length, 10),
+            piexif.ExifIFD.ExposureProgram:   random.choice([1, 2, 3]),
+            piexif.ExifIFD.WhiteBalance:      random.choice([0, 1]),
+            piexif.ExifIFD.Flash:             random.choice([0, 1, 9, 16]),
+            piexif.ExifIFD.MeteringMode:      random.choice([1, 2, 3, 4, 5]),
+        },
+        'GPS': {
+            piexif.GPSIFD.GPSLatitude:  [
+                (random.randint(0, 90),  1),
+                (random.randint(0, 59), 1),
+                (random.randint(0, 59), 1),
+            ],
+            piexif.GPSIFD.GPSLongitude: [
+                (random.randint(0, 180), 1),
+                (random.randint(0, 59),  1),
+                (random.randint(0, 59),  1),
+            ],
+        },
+    }
 
-        exif_dict = {
-            '0th': {
-                piexif.ImageIFD.Make:           make,
-                piexif.ImageIFD.Model:          model,
-                piexif.ImageIFD.Software:       software,
-                piexif.ImageIFD.DateTime:       ts,
-                piexif.ImageIFD.Artist:         random.choice([b'Professional Photographer', b'Content Creator', b'']),
-                piexif.ImageIFD.Copyright:      random.choice([b'All Rights Reserved', b'Creative Commons', b'']),
-                piexif.ImageIFD.XResolution:    (72, 1),
-                piexif.ImageIFD.YResolution:    (72, 1),
-                piexif.ImageIFD.ResolutionUnit: 2,
-            },
-            'Exif': {
-                piexif.ExifIFD.DateTimeOriginal:  ts,
-                piexif.ExifIFD.DateTimeDigitized: ts,
-                piexif.ExifIFD.ExposureTime:      exposure,
-                piexif.ExifIFD.FNumber:           fnumber,
-                piexif.ExifIFD.ISOSpeedRatings:   iso,
-                piexif.ExifIFD.FocalLength:       (focal_length, 10),
-                piexif.ExifIFD.ExposureProgram:   random.choice([1, 2, 3]),
-                piexif.ExifIFD.WhiteBalance:      random.choice([0, 1]),
-                piexif.ExifIFD.Flash:             random.choice([0, 1, 9, 16]),
-                piexif.ExifIFD.MeteringMode:      random.choice([1, 2, 3, 4, 5]),
-            },
-            'GPS': {
-                piexif.GPSIFD.GPSLatitude:  [(random.randint(0, 90), 1),  (random.randint(0, 59), 1), (random.randint(0, 59), 1)],
-                piexif.GPSIFD.GPSLongitude: [(random.randint(0, 180), 1), (random.randint(0, 59), 1), (random.randint(0, 59), 1)],
-            },
-        }
-
-        if make not in SMARTPHONE_MAKES and random.random() < 0.7:
-            exif_dict['Exif'][piexif.ExifIFD.LensMake]  = make
-            exif_dict['Exif'][piexif.ExifIFD.LensModel] = random.choice([
-                b'24-70mm f/2.8', b'70-200mm f/2.8', b'50mm f/1.4', b'85mm f/1.8',
-            ])
+    if make not in SMARTPHONE_MAKES and random.random() < 0.7:
+        exif_dict['Exif'][piexif.ExifIFD.LensMake]  = make
+        exif_dict['Exif'][piexif.ExifIFD.LensModel] = random.choice([
+            b'24-70mm f/2.8', b'70-200mm f/2.8',
+            b'50mm f/1.4',    b'85mm f/1.8',
+        ])
 
     try:
         return piexif.dump(exif_dict)
@@ -267,8 +201,7 @@ def generate_realistic_exif(is_fake: bool, has_original_exif: bool = False):
         return None
 
 
-# Feature extraction (synced with exif_extractor.py)
-
+# ── Feature extraction ────────────────────────────────────────────────────────
 _NULL_FEATURES = {
     'missing_count':        10,
     'has_camera_info':      0,
@@ -284,62 +217,68 @@ _NULL_FEATURES = {
     'has_orientation':      0,
 }
 
+SUSPICIOUS_SOFTWARE_KEYWORDS = [
+    'deepfake', 'deepface', 'faceswap', 'roop', 'midjourney',
+    'dall-e', 'dalle', 'stable diffusion', 'stylegan', 'gan',
+    'firefly', 'imagen', 'synthetic', 'generated', 'ai',
+    'swapper', 'creator', 'generator', 'runway', 'pika', 'leonardo',
+]
+
+
+def _is_suspicious(software_bytes) -> bool:
+    if not software_bytes:
+        return False
+    name = (software_bytes.decode('utf-8', errors='ignore')
+            if isinstance(software_bytes, bytes) else str(software_bytes)).lower()
+    return any(kw in name for kw in SUSPICIOUS_SOFTWARE_KEYWORDS)
+
 
 def extract_exif_features(exif_bytes) -> dict:
     """
-    Extract features from raw EXIF bytes.
-    Output columns match EXIF_FEATURE_COLS in config.py exactly (12 columns).
-
-    FIX: piexif.load() can return None for any IFD (e.g. GPS, Interop).
-         All IFD accesses now go through dict.get() with a fallback of {},
-         and tag counting uses _safe_ifd_len() which handles None gracefully.
+    Extract the 12 canonical EXIF features matching EXIF_FEATURE_COLS.
+    FIX: timestamp_consistent now properly compared (was hardcoded 1).
     """
     if not exif_bytes:
         return dict(_NULL_FEATURES)
 
     try:
-        exif = piexif.load(exif_bytes)
+        exif     = piexif.load(exif_bytes)
+        ifd_0th  = exif.get('0th')  or {}
+        ifd_exif = exif.get('Exif') or {}
+        ifd_gps  = exif.get('GPS')  or {}
 
-        # ── Safely retrieve each IFD, defaulting to {} when None ────────────
-        ifd_0th   = exif.get('0th')   or {}
-        ifd_exif  = exif.get('Exif')  or {}
-        ifd_gps   = exif.get('GPS')   or {}
-
-        # ── Camera / software ────────────────────────────────────────────────
         has_camera  = (piexif.ImageIFD.Make  in ifd_0th and
                        piexif.ImageIFD.Model in ifd_0th)
         has_software = piexif.ImageIFD.Software in ifd_0th
-
         software_val = ifd_0th.get(piexif.ImageIFD.Software, b'')
-        if isinstance(software_val, bytes):
-            software_str = software_val.decode('utf-8', errors='ignore')
-        else:
-            software_str = str(software_val)
-        suspicious = is_suspicious_software(software_str)
+        suspicious   = _is_suspicious(software_val)
 
-        # ── Presence flags ───────────────────────────────────────────────────
-        has_ts     = piexif.ExifIFD.DateTimeOriginal in ifd_exif
-        has_gps    = len(ifd_gps) > 0
-        has_flash  = piexif.ExifIFD.Flash       in ifd_exif
-        has_orient = piexif.ImageIFD.Orientation in ifd_0th
+        has_ts      = piexif.ExifIFD.DateTimeOriginal in ifd_exif
+        has_gps     = len(ifd_gps) > 0
+        has_flash   = piexif.ExifIFD.Flash       in ifd_exif
+        has_orient  = piexif.ImageIFD.Orientation in ifd_0th
+        total_tags  = sum(_safe_ifd_len(v) for v in exif.values())
 
-        # ── Total tag count (FIX: _safe_ifd_len handles None IFDs) ──────────
-        total_tags = sum(_safe_ifd_len(v) for v in exif.values())
+        # Timestamp fields
+        raw_dt  = ifd_0th.get(piexif.ImageIFD.DateTime, b'')
+        raw_dto = ifd_exif.get(piexif.ExifIFD.DateTimeOriginal, b'')
 
-        # ── Timestamp plausibility ───────────────────────────────────────────
-        raw_ts = ifd_0th.get(piexif.ImageIFD.DateTime, b'')
-        if isinstance(raw_ts, bytes):
-            ts_str = raw_ts.decode('utf-8', errors='ignore')
-        else:
-            ts_str = str(raw_ts)
+        def _dec(b):
+            return b.decode('utf-8', errors='ignore') if isinstance(b, bytes) else str(b)
 
-        plausible = is_plausible_timestamp(ts_str)
-        future    = False
-        if ts_str:
+        ts_dt  = _dec(raw_dt)
+        ts_dto = _dec(raw_dto)
+
+        # FIX: actually compare the two timestamp fields
+        ts_consistent = int(bool(ts_dt and ts_dto and ts_dt == ts_dto))
+        ts_plausible  = int(is_plausible_timestamp(ts_dto or ts_dt))
+
+        future = False
+        primary_ts = ts_dto or ts_dt
+        if primary_ts:
             for fmt in ("%Y:%m:%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
                 try:
-                    dt     = datetime.strptime(ts_str.strip(), fmt)
-                    future = dt > datetime.now()
+                    future = datetime.strptime(primary_ts.strip(), fmt) > datetime.now()
                     break
                 except ValueError:
                     continue
@@ -350,8 +289,8 @@ def extract_exif_features(exif_bytes) -> dict:
             'has_software':         int(has_software),
             'software_suspicious':  int(suspicious),
             'has_timestamp':        int(has_ts),
-            'timestamp_consistent': 1,          # placeholder; multi-tag check omitted
-            'timestamp_plausible':  int(plausible),
+            'timestamp_consistent': ts_consistent,
+            'timestamp_plausible':  ts_plausible,
             'timestamp_future':     int(future),
             'exif_total_tags':      total_tags,
             'has_gps':              int(has_gps),
@@ -364,8 +303,7 @@ def extract_exif_features(exif_bytes) -> dict:
         return dict(_NULL_FEATURES)
 
 
-# File hashing
-
+# ── File hashing ──────────────────────────────────────────────────────────────
 def get_hash(fp) -> str | None:
     try:
         h = hashlib.md5()
@@ -377,25 +315,30 @@ def get_hash(fp) -> str | None:
         return None
 
 
-# Single image processing
-
+# ── Single image processing ───────────────────────────────────────────────────
 def process(fp, out_dir, label, idx, is_fake) -> dict | None:
     try:
         img = Image.open(fp)
 
-        original_exif     = img.info.get('exif', b'')
-        has_original_exif = len(original_exif) > 0
+        if EXIF_STRATEGY == "strip":
+            # FIX option A: strip all EXIF → no leakage possible
+            active_exif = b''
+        else:
+            # FIX option B: inject real-camera EXIF into both classes
+            original_exif     = img.info.get('exif', b'')
+            has_original_exif = len(original_exif) > 0
+            generated         = generate_realistic_exif(has_original_exif)
+            active_exif       = generated if generated else original_exif
 
-        enhanced_exif = generate_realistic_exif(is_fake, has_original_exif)
-        active_exif   = enhanced_exif if enhanced_exif else original_exif
-
-        features = extract_exif_features(active_exif)
+        features               = extract_exif_features(active_exif)
         features['image_path'] = f"{label}_{idx}.jpg"
-        features['label']      = 1 if is_fake else 0  # 1=FAKE, 0=REAL
 
-        if img.mode not in ('RGB',):
+        # FIX: label convention matches Keras class_indices
+        # classes=["fake","real"] → fake=0, real=1
+        features['label'] = 0 if is_fake else 1   # FIX: was inverted (1=FAKE)
+
+        if img.mode != 'RGB':
             img = img.convert('RGB')
-
         img = img.resize(IMG_SIZE, Image.Resampling.LANCZOS)
 
         save_kwargs = {'format': 'JPEG', 'quality': 95,
@@ -406,19 +349,23 @@ def process(fp, out_dir, label, idx, is_fake) -> dict | None:
         img.save(out_dir / f"{label}_{idx}.jpg", **save_kwargs)
         return features
 
-    except Exception:
+    except UnidentifiedImageError:
+        print(f"  Unreadable image: {fp.name}")
+        return None
+    except Exception as e:
+        # FIX: was silent (bare except: return None) — now visible
+        print(f"  process() error on {fp.name}: {e}")
         return None
 
 
-# Batch preprocessing
-
+# ── Batch preprocessing ───────────────────────────────────────────────────────
 def preprocess(src: Path, dst: Path, label: str, is_fake: bool) -> list:
     if not src.exists():
         print(f"⚠️  Source path does not exist: {src}")
         return []
 
-    print(f"\nScanning {src} for images...")
-    files = list(src.rglob("*"))
+    print(f"\nScanning {src}...")
+    files     = list(src.rglob("*"))
     random.shuffle(files)
 
     valid_ext     = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
@@ -427,7 +374,7 @@ def preprocess(src: Path, dst: Path, label: str, is_fake: bool) -> list:
     count = skipped_dup = skipped_bad = 0
 
     for fp in files:
-        if len(seen_hashes) >= MAX_IMAGES:
+        if count >= MAX_IMAGES:
             break
         if fp.suffix.lower() not in valid_ext:
             continue
@@ -445,8 +392,10 @@ def preprocess(src: Path, dst: Path, label: str, is_fake: bool) -> list:
         if result:
             features_list.append(result)
             count += 1
-            if count % 100 == 0:
-                print(f"  Processed {count} {label} images...")
+            if count % 500 == 0:
+                print(f"  {count}/{MAX_IMAGES} {label} images processed...")
+        else:
+            skipped_bad += 1
 
     print(f"""
 ========================
@@ -458,35 +407,48 @@ Bad files skipped : {skipped_bad}
     return features_list
 
 
-# Entry point
-
+# ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print("=" * 50)
-    print("Processing REAL images...")
-    print("=" * 50)
+    print("=" * 55)
+    print(f"EXIF strategy: {EXIF_STRATEGY}")
+    print("=" * 55)
+
+    print("\nProcessing REAL images...")
     real_features = preprocess(SRC_REAL, OUT_REAL, "real", is_fake=False)
 
-    print("\n" + "=" * 50)
-    print("Processing FAKE images...")
-    print("=" * 50)
+    print("\nProcessing FAKE images...")
     fake_features = preprocess(SRC_FAKE, OUT_FAKE, "fake", is_fake=True)
 
     all_features = real_features + fake_features
     if all_features:
         df = pd.DataFrame(all_features)
 
-        # Verify all expected columns are present
-        from config import EXIF_FEATURE_COLS
-        expected = EXIF_FEATURE_COLS + ['image_path', 'label']
-        missing_cols = [c for c in expected if c not in df.columns]
-        if missing_cols:
-            print(f"⚠️  Missing columns: {missing_cols}")
+        # FIX: wrapped config import so a missing config.py doesn't kill the run
+        try:
+            from config import EXIF_FEATURE_COLS
+            expected     = EXIF_FEATURE_COLS + ['image_path', 'label']
+            missing_cols = [c for c in expected if c not in df.columns]
+            if missing_cols:
+                print(f"⚠️  Missing columns in output: {missing_cols}")
+        except ImportError:
+            print("⚠️  config.py not found — skipping column validation")
 
         df.to_csv("data/metadata.csv", index=False)
-        print(f"\n✅ Metadata saved to data/metadata.csv")
+        print(f"\n✅ Metadata saved → data/metadata.csv")
         print(f"   Total samples : {len(df)}")
-        print(f"   Fake (label=1): {df['label'].sum()}")
-        print(f"   Real (label=0): {len(df) - df['label'].sum()}")
+        print(f"   FAKE (label=0): {(df['label'] == 0).sum()}")
+        print(f"   REAL (label=1): {(df['label'] == 1).sum()}")
         print(f"   Columns       : {list(df.columns)}")
+
+        # Leakage check
+        print("\nLeakage check — feature correlation with label:")
+        try:
+            from config import EXIF_FEATURE_COLS as COLS
+        except ImportError:
+            COLS = [c for c in df.columns if c not in ('image_path', 'label')]
+        for col in COLS:
+            corr = df[col].corr(df['label'])
+            flag = " ← ⚠️ LEAKY" if abs(corr) > 0.8 else ""
+            print(f"  {col:30s}: {corr:+.3f}{flag}")
 
     print("\n✅ COMPLETE!")
