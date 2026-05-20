@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 SRC_REAL = Path("/kaggle/input/datasets/arnaud58/flickrfaceshq-dataset-ffhq")
 
 # Download FAKE images from ThisPersonDoesNotExist
-SRC_FAKE = Path("/kaggle/input/140k-real-and-fake-faces/real_vs_fake/real-vs-fake/train/fake")
+SRC_FAKE = Path("/kaggle/input/datasets/xhlulu/140k-real-and-fake-faces/real_vs_fake/real-vs-fake/train/fake")
 
 
 # Google Colab (uncomment to use)
