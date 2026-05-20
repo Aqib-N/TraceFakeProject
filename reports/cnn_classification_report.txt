@@ -3,17 +3,17 @@ TraceFake AI — CNN Classification Report
 
               precision    recall  f1-score   support
 
-        FAKE       0.52      1.00      0.68      4260
-        REAL       1.00      0.06      0.12      4260
+        FAKE       0.52      0.04      0.08      4260
+        REAL       0.50      0.96      0.66      4260
 
-    accuracy                           0.53      8520
-   macro avg       0.76      0.53      0.40      8520
-weighted avg       0.76      0.53      0.40      8520
+    accuracy                           0.50      8520
+   macro avg       0.51      0.50      0.37      8520
+weighted avg       0.51      0.50      0.37      8520
 
-Best Val Accuracy : 0.7871
-Best Val AUC      : 0.9572
-Best Val Precision: 1.0000
+Best Val Accuracy : 0.5134
+Best Val AUC      : 0.5485
+Best Val Precision: 0.7273
 Best Val Recall   : 1.0000
 Total Epochs      : 15
-Phase 1 Epochs    : 10
-Phase 2 Epochs    : 5
+Phase 1 Epochs    : 6
+Phase 2 Epochs    : 9
