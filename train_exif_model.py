@@ -1,3 +1,14 @@
+"""
+TraceFake AI — EXIF XGBoost Training (ArtiFact / Injected EXIF)
+
+Leaky features removed:
+  - has_camera_info  (+1.000 corr) — real always has camera, fake never
+  - exif_total_tags  (+0.975 corr) — directly counts tags = reveals class
+
+Remaining 10 features all have genuine forensic signal (0.23–0.94 corr)
+without being perfect predictors.
+"""
+
 import pandas as pd
 import numpy as np
 import joblib
