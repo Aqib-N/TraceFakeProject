@@ -1,3 +1,4 @@
+
 import os
 import sys
 import logging
@@ -38,18 +39,7 @@ except ImportError:
         "exif_total_tags", "has_gps", "has_flash", "has_orientation",
     ]
 
-# ── FIX 1: register focal_loss BEFORE any load_model call ────────────────────
-@tf.keras.saving.register_keras_serializable(package="TraceFake")
-def focal_loss(y_true, y_pred, gamma=2.0, alpha=0.25):
-    """Must match exactly what train_cnn_v2.py used."""
-    y_pred  = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
-    bce     = -y_true * K.log(y_pred) - (1 - y_true) * K.log(1 - y_pred)
-    p_t     = y_true * y_pred + (1 - y_true) * (1 - y_pred)
-    alpha_t = y_true * alpha + (1 - y_true) * (1 - alpha)
-    return K.mean(alpha_t * K.pow(1 - p_t, gamma) * bce)
-
-
-# ── FIX 2: safe imports — missing src/ won't crash Streamlit Cloud ────────────
+# ── Safe imports ──────────────────────────────────────────────────────────────
 try:
     from src.preprocess.exif_extractor import (
         extract as exif_extract,
@@ -88,7 +78,9 @@ class _MockEXIF:
 
 
 # ── Load CNN ──────────────────────────────────────────────────────────────────
-# FIX 3: try cnn_best.keras first, then cnn.keras, then mock
+# FIX: compile=False — skips loss deserialization entirely.
+# focal_loss registration not needed for inference, only for training.
+# Works on ALL Keras/TF versions.
 _cnn_loaded = False
 for _cnn_name in ["cnn_best.keras", "cnn.keras"]:
     _cnn_path = MODEL_DIR / _cnn_name
@@ -96,7 +88,7 @@ for _cnn_name in ["cnn_best.keras", "cnn.keras"]:
         try:
             cnn = tf.keras.models.load_model(
                 str(_cnn_path),
-                custom_objects={"focal_loss": focal_loss},  # FIX 1
+                compile=False,   # FIX: no loss deserialization needed
             )
             print(f"✅ CNN loaded from {_cnn_path}")
             _cnn_loaded = True
@@ -114,7 +106,7 @@ exif_path = MODEL_DIR / "exif_xgb.pkl"
 if exif_path.exists():
     try:
         exif_model = joblib.load(str(exif_path))
-        print(f"✅ EXIF model loaded from {exif_path}")
+        print(f"✅ EXIF model loaded")
     except Exception as e:
         print(f"⚠️  EXIF model load failed: {e} — using mock")
         exif_model = _MockEXIF()
@@ -130,7 +122,7 @@ if fusion_path.exists():
         fusion_data    = joblib.load(str(fusion_path))
         FUSION_WEIGHTS = fusion_data["weights"]
         FUSION_BIAS    = fusion_data.get("bias", 0.0)
-        print(f"✅ Fusion weights loaded: {FUSION_WEIGHTS}")
+        print(f"✅ Fusion weights: {FUSION_WEIGHTS}")
     except Exception as e:
         print(f"⚠️  Fusion weights failed: {e} — using defaults")
         FUSION_WEIGHTS = DEFAULT_FUSION_WEIGHTS
@@ -138,7 +130,7 @@ if fusion_path.exists():
 else:
     FUSION_WEIGHTS = DEFAULT_FUSION_WEIGHTS
     FUSION_BIAS    = DEFAULT_FUSION_BIAS
-    print(f"ℹ️  Using default fusion weights: {FUSION_WEIGHTS}")
+    print(f"ℹ️  Default fusion weights: {FUSION_WEIGHTS}")
 
 
 # ── Load decision threshold ───────────────────────────────────────────────────
@@ -152,7 +144,7 @@ if _threshold_path.exists():
     except Exception:
         pass
 else:
-    print(f"ℹ️  Using default threshold: {THRESHOLD}")
+    print(f"ℹ️  Default threshold: {THRESHOLD}")
 
 
 # ── Predictions ───────────────────────────────────────────────────────────────
@@ -212,7 +204,6 @@ def final_predict(path, features: dict = None) -> dict:
     )
     final_score = float(max(0.0, min(1.0, final_score)))
 
-    # Use tuned threshold — not hardcoded 0.5
     uncertain_lo = max(0.10, THRESHOLD - 0.10)
     uncertain_hi = min(0.90, THRESHOLD + 0.10)
 
@@ -240,8 +231,8 @@ def batch_predict(image_paths) -> list:
     results = []
     for path in image_paths:
         try:
-            result         = final_predict(path)
-            result["file"] = str(path)
+            result          = final_predict(path)
+            result["file"]  = str(path)
             result["error"] = None
         except Exception as e:
             result = {"file": str(path), "error": str(e), "result": "ERROR"}

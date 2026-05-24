@@ -24,7 +24,7 @@
     "learning_rate": 0.2,
     "colsample_bytree": 1.0
   },
-  "best_cv_auc": 0.9967,
-  "test_auc": 0.9966,
+  "best_cv_auc": 0.9966,
+  "test_auc": 0.9964,
   "n_features": 12
 }
