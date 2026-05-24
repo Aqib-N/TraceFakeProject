@@ -1,0 +1,5 @@
+{
+  "threshold": 0.1,
+  "best_f1_threshold": 0.12,
+  "default": 0.5
+}

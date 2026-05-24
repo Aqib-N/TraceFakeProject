@@ -1,31 +1,34 @@
-# ── Core ML ───────────────────────────────────────────────────────────────────
+# ── Core ML
 tensorflow       
 numpy      
 pandas>=2.0
 scikit-learn>=1.3
 
-# ── Image Processing ─────────────────────────────────────────────────────────
-pillow>=10.0
-opencv-python-headless  # correct — headless avoids libGL errors on servers
-piexif                  # used in preprocess_images.py
-# exifread              # FIX 3: removed — your code uses PIL only, not exifread
+# Image Processing
+pillow
+opencv-python-headless  
+exifread
+piexif
 
-# ── Visualization ─────────────────────────────────────────────────────────────
-matplotlib>=3.7         # FIX 4: removed stray ">" typo (was "matplotlib>")
+# ── Visualization 
+matplotlib>=3.7    
 seaborn>=0.13
 
-# ── ML Models ─────────────────────────────────────────────────────────────────
+# ── ML Models 
 xgboost>=2.0
 joblib>=1.3
 
-# ── Web UI ────────────────────────────────────────────────────────────────────
-streamlit>=1.35
+# Web UI
+streamlit
 
-# ── API (optional) ────────────────────────────────────────────────────────────
-# fastapi
-# uvicorn
-# python-multipart
+# API
+fastapi
+uvicorn
+python-multipart
 
-# ── Data sourcing (optional, only needed for training) ────────────────────────
-# kagglehub
-# datasets
+# Data
+kagglehub
+datasets
+# Downloader
+requests
+tqdm
