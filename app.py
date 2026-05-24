@@ -12,8 +12,9 @@ BASE_DIR = Path(__file__).parent
 sys.path.append(str(BASE_DIR))
 sys.path.append(str(BASE_DIR / "src"))
 
-Path("reports").mkdir(exist_ok=True)
-Path("data/processed").mkdir(parents=True, exist_ok=True)
+# Replace the two Path().mkdir lines with:
+(BASE_DIR / "reports").mkdir(exist_ok=True)
+(BASE_DIR / "data" / "processed").mkdir(parents=True, exist_ok=True)
 
 # FIX 1: predict_system lives at root, not src/inference/
 # Old: from src.inference.predict_system import final_predict
